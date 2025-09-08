@@ -460,83 +460,164 @@ void VTerm::clear_mode()
 	enable_mode(false);
 }
 
+// Original Attr set function
+// void VTerm::set_display_attr()
+// {
+// 	for (u16 n = 0; n <= npar; n++) {
+// 		switch (param[n]) {
+// 		case 0:
+// 			char_attr = default_char_attr;
+// 			break;
+// 		case 1:
+// 			char_attr.intensity = 2;
+// 			break;
+// 		case 2:
+// 			char_attr.intensity = 0;
+// 			break;
+// 		case 3:
+// 			char_attr.italic = true;
+// 			break;
+// 		case 4:
+// 			char_attr.underline = true;
+// 			break;
+// 		case 5:
+// 			char_attr.blink = true;
+// 			break;
+// 		case 7:
+// 			char_attr.reverse = true;
+// 			break;
+// 		case 10:
+// 			charset = (g0_is_active ? g0_charset : g1_charset);
+// 			mode_flags.display_ctrl = false;
+// 			mode_flags.toggle_meta = false;
+// 			break;
+// 		case 11:
+// 			charset = IbmpcMap;
+// 			mode_flags.display_ctrl = true;
+// 			mode_flags.toggle_meta = false;
+// 			break;
+// 		case 12:
+// 			charset = IbmpcMap;
+// 			mode_flags.display_ctrl = true;
+// 			mode_flags.toggle_meta = true;
+// 			break;
+// 		case 21:
+// 		case 22:
+// 			char_attr.intensity = 1;
+// 			break;
+// 		case 23:
+// 			char_attr.italic = false;
+// 			break;
+// 		case 24:
+// 			char_attr.underline = false;
+// 			break;
+// 		case 25:
+// 			char_attr.blink = false;
+// 			break;
+// 		case 27:
+// 			char_attr.reverse = false;
+// 			break;
+// 		case 30 ... 37:
+// 			char_attr.fcolor = param[n] % 10;
+// 			break;
+// 		case 38:
+// 			char_attr.fcolor = cur_fcolor;
+// 			char_attr.underline = true;
+// 			break;
+// 		case 39:
+// 			char_attr.fcolor = cur_fcolor;
+// 			char_attr.underline = false;
+// 			break;
+// 		case 40 ... 47:
+// 			char_attr.bcolor = param[n] % 10;
+// 			break;
+// 		case 49:
+// 			char_attr.bcolor = cur_bcolor;
+// 			break;
+// 		default :
+// 			break;
+// 		}
+// 	}
+// }
+
+// Modified
+// This is the new, corrected version of set_display_attr()
 void VTerm::set_display_attr()
 {
-	for (u16 n = 0; n <= npar; n++) {
-		switch (param[n]) {
-		case 0:
-			char_attr = default_char_attr;
-			break;
-		case 1:
-			char_attr.intensity = 2;
-			break;
-		case 2:
-			char_attr.intensity = 0;
-			break;
-		case 3:
-			char_attr.italic = true;
-			break;
-		case 4:
-			char_attr.underline = true;
-			break;
-		case 5:
-			char_attr.blink = true;
-			break;
-		case 7:
-			char_attr.reverse = true;
-			break;
-		case 10:
-			charset = (g0_is_active ? g0_charset : g1_charset);
-			mode_flags.display_ctrl = false;
-			mode_flags.toggle_meta = false;
-			break;
-		case 11:
-			charset = IbmpcMap;
-			mode_flags.display_ctrl = true;
-			mode_flags.toggle_meta = false;
-			break;
-		case 12:
-			charset = IbmpcMap;
-			mode_flags.display_ctrl = true;
-			mode_flags.toggle_meta = true;
-			break;
-		case 21:
-		case 22:
-			char_attr.intensity = 1;
-			break;
-		case 23:
-			char_attr.italic = false;
-			break;
-		case 24:
-			char_attr.underline = false;
-			break;
-		case 25:
-			char_attr.blink = false;
-			break;
-		case 27:
-			char_attr.reverse = false;
-			break;
-		case 30 ... 37:
-			char_attr.fcolor = param[n] % 10;
-			break;
-		case 38:
-			char_attr.fcolor = cur_fcolor;
-			char_attr.underline = true;
-			break;
-		case 39:
-			char_attr.fcolor = cur_fcolor;
-			char_attr.underline = false;
-			break;
-		case 40 ... 47:
-			char_attr.bcolor = param[n] % 10;
-			break;
-		case 49:
-			char_attr.bcolor = cur_bcolor;
-			break;
-		default :
-			break;
-		}
-	}
+    // Loop through all parameters given in the escape sequence
+    // Example: \x1b[1;31m -> param[] = {1, 31}
+    for (u16 n = 0; n <= npar; n++) {
+        switch (param[n]) {
+        // Reset all attributes
+        case 0:
+            char_attr = default_char_attr;
+            break;
+
+        // --- Standard Attributes ---
+        case 1: char_attr.intensity = 2; break; // Bold/Bright
+        case 2: char_attr.intensity = 0; break; // Dim
+        case 4: char_attr.underline = true; break;
+        case 5: char_attr.blink = true; break;
+        case 7: char_attr.reverse = true; break;
+        case 22: char_attr.intensity = 1; break; // Normal intensity
+        case 24: char_attr.underline = false; break;
+        case 25: char_attr.blink = false; break;
+        case 27: char_attr.reverse = false; break;
+
+        // --- 8 Standard Foreground Colors ---
+        case 30 ... 37:
+            char_attr.fcolor = param[n] - 30;
+            break;
+
+        // --- Extended Foreground Color (256-color) ---
+        case 38:
+            // Check for the 256-color sequence: ESC [ 38 ; 5 ; <n> m
+            if (n + 2 <= npar && param[n + 1] == 5) {
+                char_attr.fcolor = param[n + 2];
+                n += 2; // VERY IMPORTANT: Skip the next two parameters we've just used
+            }
+            break;
+
+        // --- Default Foreground Color ---
+        case 39:
+            char_attr.fcolor = default_char_attr.fcolor;
+            break;
+
+        // --- 8 Standard Background Colors ---
+        case 40 ... 47:
+            char_attr.bcolor = param[n] - 40;
+            break;
+
+        // --- Extended Background Color (256-color) ---
+        case 48:
+            // Check for the 256-color sequence: ESC [ 48 ; 5 ; <n> m
+            if (n + 2 <= npar && param[n + 1] == 5) {
+                char_attr.bcolor = param[n + 2];
+                n += 2; // VERY IMPORTANT: Skip the next two parameters
+            }
+            break;
+
+        // --- Default Background Color ---
+        case 49:
+            char_attr.bcolor = default_char_attr.bcolor;
+            break;
+
+        // --- [NEW!] 8 Bright Foreground Colors ---
+        case 90 ... 97:
+            // Color index = base color (0-7) + 8
+            char_attr.fcolor = (param[n] - 90) + 8;
+            break;
+
+        // --- [NEW!] 8 Bright Background Colors ---
+        case 100 ... 107:
+            // Color index = base color (0-7) + 8
+            char_attr.bcolor = (param[n] - 100) + 8;
+            break;
+            
+        default:
+            break;
+        }
+    }
 }
 
 void VTerm::set_q_mode()
