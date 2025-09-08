@@ -1,0 +1,5 @@
+libshell_a-vterm_states.o: vterm_states.cpp vterm.h type.h
+
+vterm.h:
+
+type.h:
