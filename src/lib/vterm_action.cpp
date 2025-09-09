@@ -551,6 +551,7 @@ void VTerm::set_display_attr()
         // Reset all attributes
         case 0:
             char_attr = default_char_attr;
+			clear_param();
             break;
 
         // --- Standard Attributes ---

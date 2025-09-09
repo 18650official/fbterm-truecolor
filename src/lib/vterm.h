@@ -30,9 +30,33 @@ public:
 	struct CharAttr {
 		typedef enum { Single = 0, DoubleLeft, DoubleRight } CharType;
 
-		bool operator != (const CharAttr a) {
-			return fcolor != a.fcolor || bcolor != a.bcolor || intensity != a.intensity
-				|| italic != a.italic || underline != a.underline || blink != a.blink || reverse != a.reverse;
+		// bool operator != (const CharAttr a) {
+		// 	return fcolor != a.fcolor || bcolor != a.bcolor || intensity != a.intensity
+		// 		|| italic != a.italic || underline != a.underline || blink != a.blink || reverse != a.reverse;
+		// }
+		bool operator != (const CharAttr& a) const {
+			// 1. 先检查最重要的真彩色模式是否一致
+			if (is_truecolor != a.is_truecolor) return true;
+
+			// 2. 如果处于真彩色模式，就去比较24位的RGB值
+			if (is_truecolor & 1) { // 检查前景
+				if (true_fcolor != a.true_fcolor) return true;
+			}
+			if (is_truecolor & 2) { // 检查背景
+				if (true_bcolor != a.true_bcolor) return true;
+			}
+
+			// 3. 如果不是真彩色模式（或者真彩色也相同），再继续检查原来的所有属性
+			if (fcolor != a.fcolor) return true;
+			if (bcolor != a.bcolor) return true;
+
+			// 4. 最后检查所有其他标志
+			return intensity != a.intensity
+				|| italic != a.italic
+				|| underline != a.underline
+				|| blink != a.blink
+				|| reverse != a.reverse
+				|| type != a.type;
 		}
 
 		u16 fcolor : 8;
