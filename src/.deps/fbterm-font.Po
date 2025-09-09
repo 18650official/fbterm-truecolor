@@ -64,7 +64,8 @@ fbterm-font.o: font.cpp \
  /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/fterrors.h \
  /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/ftmoderr.h \
  /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/fterrdef.h \
- font.h lib/type.h lib/instance.h screen.h fbconfig.h
+ font.h lib/type.h lib/instance.h screen.h lib/vterm.h lib/type.h \
+ fbconfig.h
 
 /home/miku/luckfox_build/fbterm_build/usr/include/fontconfig/fontconfig.h:
 
@@ -203,5 +204,9 @@ lib/type.h:
 lib/instance.h:
 
 screen.h:
+
+lib/vterm.h:
+
+lib/type.h:
 
 fbconfig.h:

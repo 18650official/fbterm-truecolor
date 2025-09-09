@@ -5,7 +5,8 @@ fbterm-fbshellman.o: fbshellman.cpp \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/sys/cdefs.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/lib/gcc/arm-rockchip830-linux-uclibcgnueabihf/8.3.0/include/stddef.h \
  fbshellman.h lib/type.h lib/instance.h fbshell.h lib/shell.h lib/io.h \
- lib/type.h lib/instance.h lib/vterm.h fbterm.h screen.h improxy.h \
+ lib/type.h lib/instance.h lib/vterm.h fbterm.h screen.h lib/vterm.h \
+ improxy.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/list \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/bits/stl_algobase.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/arm-rockchip830-linux-uclibcgnueabihf/bits/c++config.h \
@@ -70,6 +71,8 @@ lib/vterm.h:
 fbterm.h:
 
 screen.h:
+
+lib/vterm.h:
 
 improxy.h:
 

@@ -23,6 +23,7 @@
 
 #include "type.h"
 #include "instance.h"
+#include "vterm.h"
 
 #define NR_COLORS 256
 
@@ -46,6 +47,7 @@ public :
 	void rotatePoint(u32 w, u32 h, u32 &x, u32 &y);
 
 	void drawText(u32 x, u32 y, u8 fc, u8 bc, u16 num, u16 *text, bool *dw);
+	void drawTextTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 num, u16 *text, bool *dw); // Our new function
 	void fillRect(u32 x, u32 y, u32 w, u32 h, u8 color);
 
 	bool move(u16 scol, u16 srow, u16 dcol, u16 drow, u16 w, u16 h);
@@ -69,7 +71,8 @@ protected:
 	s32 mOffsetCur;
 
 	u8 *mVMemBase;
-	const Color *mPalette;
+	// const Color *mPalette;
+	Color *mPalette;
 
 private:
 	virtual void setupOffset() {}
@@ -80,6 +83,11 @@ private:
 	void drawGlyphs(u32 x, u32 y, u8 fc, u8 bc, u16 num, u16 *text, bool *dw);
 	void drawGlyph(u32 x, u32 y, u8 fc, u8 bc, u16 code, bool dw);
 	void adjustOffset(u32 &x, u32 &y);
+
+	// 24-bit true color support
+	void fillRectWithAttr(u32 x, u32 y, u32 w, u32 h, VTerm::CharAttr attr);
+    void drawGlyphsTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 num, u16 *text, bool *dw);
+    void drawGlyphTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 code, bool dw);
 
 	void initFillDraw();
 	void endFillDraw();

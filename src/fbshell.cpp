@@ -363,17 +363,113 @@ FbShell::~FbShell()
 	if (mPalette) delete[] mPalette;
 }
 
+// void FbShell::drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u16 *chars, bool *dws)
+// {
+// 	if (manager->activeShell() != this) return;
+
+// 	adjustCharAttr(attr);
+
+// 	// 区分全彩输出和普通输出
+// 	if(attr.is_truecolor == 0){
+// 		screen->drawText(FW(x), FH(y), attr.fcolor, attr.bcolor, num, chars, dws); //基本的文本绘图入口
+// 	}
+// 	else{
+// 		// 全能函数入口
+// 		screen->drawTextTrueColor(FW(x), FH(y), attr, num, chars, dws);	// 处理所有含有真彩色的输入请求
+// 	}
+
+// 	if (mImProxy) {
+// 		Rectangle rect = { FW(x), FH(y), FW(w), FH(1) };
+// 		mImProxy->redrawImWin(rect);
+// 	}
+// }
+
+// This is the FINAL, CORRECTED, state-aware, and performance-aware version of FbShell::drawChars.
 void FbShell::drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u16 *chars, bool *dws)
 {
-	if (manager->activeShell() != this) return;
+    if (manager->activeShell() != this) return;
 
-	adjustCharAttr(attr);
-	screen->drawText(FW(x), FH(y), attr.fcolor, attr.bcolor, num, chars, dws);
+    adjustCharAttr(attr);
 
-	if (mImProxy) {
-		Rectangle rect = { FW(x), FH(y), FW(w), FH(1) };
-		mImProxy->redrawImWin(rect);
-	}
+    // --- Path A: Standard Palette Color Drawing ---
+    if (attr.is_truecolor == 0) {
+        if (mPaletteChanged) {
+            screen->setPalette(defaultPalette);
+            if (mPalette) {
+                delete[] mPalette;
+                mPalette = 0;
+            }
+            mPaletteChanged = false;
+        }
+        screen->drawText(FW(x), FH(y), attr.fcolor, attr.bcolor, num, chars, dws);
+        return;
+    }
+
+    // --- Path B: True Color Drawing ---
+	// attr.intensity = 1; // 1 means 'normal' intensity, see vterm.h
+    
+    // 1. Ensure we have a mutable copy of the palette.
+    if (!mPaletteChanged) {
+        mPaletteChanged = true;
+        if (!mPalette) mPalette = new Color[NR_COLORS];
+        memcpy(mPalette, defaultPalette, sizeof(defaultPalette));
+    }
+
+    // 2. Prepare final color indices and update our local palette copy.
+    u8 final_fc = attr.fcolor;
+    u8 final_bc = attr.bcolor;
+    bool palette_was_modified = false;
+
+    // We will create temporary 16-bit color values for truecolor
+    u16 true_fg_color16 = 0;
+    u16 true_bg_color16 = 0;
+
+    if (attr.is_truecolor & 1) { // Is foreground truecolor?
+        u32 color24 = attr.true_fcolor;
+        u8 r = (color24 >> 16) & 0xFF;
+        u8 g = (color24 >> 8)  & 0xFF;
+        u8 b = color24 & 0xFF;
+        
+        // =================================================================
+        // THE CRITICAL FIX IS HERE! Using the CORRECT conversion formula.
+        true_fg_color16 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
+        // =================================================================
+        
+        // This part of the hack is now more complex. We need a way to pass this 16-bit value.
+        // Let's stick with the palette reprogramming, but we need to ensure the renderer knows what to do.
+        // The fact that setPalette takes `Color` structs (with r,g,b) is our entry point.
+        Color c = {r, g, b};
+        if (memcmp(&mPalette[254], &c, sizeof(Color)) != 0) {
+            mPalette[254] = c;
+            palette_was_modified = true;
+        }
+        final_fc = 254;
+    }
+
+    if (attr.is_truecolor & 2) { // Is background truecolor?
+        u32 color24 = attr.true_bcolor;
+        u8 r = (color24 >> 16) & 0xFF;
+        u8 g = (color24 >> 8)  & 0xFF;
+        u8 b = color24 & 0xFF;
+        
+        Color c = {r, g, b};
+        if (memcmp(&mPalette[255], &c, sizeof(Color)) != 0) {
+            mPalette[255] = c;
+            palette_was_modified = true;
+        }
+        final_bc = 255;
+    }
+
+    // 3. If we actually modified the palette, send the update to the screen driver.
+    if (palette_was_modified) {
+        screen->setPalette(mPalette);
+    }
+
+    // 4. Draw the text using our updated palette.
+    screen->drawText(FW(x), FH(y), final_fc, final_bc, num, chars, dws);
+
+    // The state-aware logic: we don't restore the palette here.
+    // The restoration is handled at the beginning of Path A.
 }
 
 bool FbShell::moveChars(u16 sx, u16 sy, u16 dx, u16 dy, u16 w, u16 h)
@@ -696,6 +792,8 @@ void FbShell::expose(u16 x, u16 y, u16 w, u16 h)
 
 void FbShell::adjustCharAttr(CharAttr &attr)
 {
+	if (attr.is_truecolor != 0) attr.intensity = 1;
+
 	if (attr.italic) attr.fcolor = 2; // green
 	else if (attr.underline) attr.fcolor = 6; // cyan
 	else if (attr.intensity == 0) attr.fcolor = 8; // gray

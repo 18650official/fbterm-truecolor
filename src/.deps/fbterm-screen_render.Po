@@ -31,7 +31,7 @@ fbterm-screen_render.o: screen_render.cpp \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/alloca.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/bits/std_abs.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/string.h \
- screen.h lib/type.h lib/instance.h fbconfig.h
+ screen.h lib/type.h lib/instance.h lib/vterm.h lib/type.h fbconfig.h
 
 /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/stdlib.h:
 
@@ -102,5 +102,9 @@ screen.h:
 lib/type.h:
 
 lib/instance.h:
+
+lib/vterm.h:
+
+lib/type.h:
 
 fbconfig.h:

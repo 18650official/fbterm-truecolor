@@ -240,12 +240,65 @@ void Screen::drawText(u32 x, u32 y, u8 fc, u8 bc, u16 num, u16 *text, bool *dw)
 	}
 }
 
+// True-color draw function
+// screen.cpp, add this new function somewhere
+
+void Screen::drawTextTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 num, u16 *text, bool *dw)
+{
+    u32 startx, fw = FW(1);
+    u16 startnum, *starttext;
+    bool *startdw, draw_space = false, draw_text = false;
+
+    // This loop logic is identical to the original drawText
+    for (; num; num--, text++, dw++, x += fw) {
+        if (*text == 0x20) { // It's a space
+            if (draw_text) {
+                draw_text = false;
+                drawGlyphsTrueColor(startx, y, attr, startnum - num, starttext, startdw);
+            }
+            if (!draw_space) {
+                draw_space = true;
+                startx = x;
+            }
+        } else { // It's a character
+            if (draw_space) {
+                draw_space = false;
+                fillRectWithAttr(startx, y, x - startx, FH(1), attr);
+            }
+            if (!draw_text) {
+                draw_text = true;
+                starttext = text;
+                startdw = dw;
+                startnum = num;
+                startx = x;
+            }
+            if (*dw) x += fw;
+        }
+    }
+
+    // Draw any remaining text or spaces
+    if (draw_text) {
+        drawGlyphsTrueColor(startx, y, attr, startnum - num, starttext, startdw);
+    } else if (draw_space) {
+        fillRectWithAttr(startx, y, x - startx, FH(1), attr);
+    }
+}
+
 void Screen::drawGlyphs(u32 x, u32 y, u8 fc, u8 bc, u16 num, u16 *text, bool *dw)
 {
 	for (; num--; text++, dw++) {
 		drawGlyph(x, y, fc, bc, *text, *dw);
 		x += *dw ? FW(2) : FW(1);
 	}
+}
+
+// 24-bit support
+void Screen::drawGlyphsTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 num, u16 *text, bool *dw)
+{
+    for (; num--; text++, dw++) {
+        drawGlyphTrueColor(x, y, attr, *text, *dw);
+        x += *dw ? FW(2) : FW(1);
+    }
 }
 
 void Screen::adjustOffset(u32 &x, u32 &y)
@@ -267,6 +320,23 @@ void Screen::fillRect(u32 x, u32 y, u32 w, u32 h, u8 color)
 		if (mScrollType == YWrap && y > mOffsetMax) y -= mOffsetMax + 1;
 		(this->*fill)(x, y++, w, color);
 	}
+}
+
+// This function decides which background color to use (palette or truecolor)
+void Screen::fillRectWithAttr(u32 x, u32 y, u32 w, u32 h, VTerm::CharAttr attr)
+{
+    u8 color_index;
+    if (attr.is_truecolor & 2) { // Is background truecolor?
+        // The "palette reprogramming" hack:
+        // We set a high-numbered palette entry to our desired true color.
+        Color c = {(u8)(attr.true_bcolor >> 16), (u8)(attr.true_bcolor >> 8), (u8)attr.true_bcolor};
+        mPalette[255] = c;
+        setupPalette(false); // Update the internal color table
+        color_index = 255;   // Use this temporary palette index
+    } else {
+        color_index = attr.bcolor; // Use the normal palette index
+    }
+    fillRect(x, y, w, h, color_index);
 }
 
 void Screen::drawGlyph(u32 x, u32 y, u8 fc, u8 bc, u16 code, bool dw)
@@ -333,6 +403,111 @@ void Screen::drawGlyph(u32 x, u32 y, u8 fc, u8 bc, u16 code, bool dw)
 		if ((mScrollType == YWrap) && y > mOffsetMax) y -= mOffsetMax + 1;
 		(this->*draw)(x, y, nwidth, fc, bc, pixmap);
 	}
+}
+
+// This is our new, standalone, "ultimate" glyph drawing function.
+// It takes a full CharAttr object and can handle both palette and true color modes.
+void Screen::drawGlyphTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 code, bool dw)
+{
+    // --- Phase 1: Color Resolution (The "Palette Reprogramming" Hack) ---
+    
+    u8 final_fc = attr.fcolor; // Start with the default palette foreground color index
+    u8 final_bc = attr.bcolor; // Start with the default palette background color index
+    bool palette_needs_update = false;
+
+    // Check if the foreground is in true color mode
+    if (attr.is_truecolor & 1) { 
+        // Unpack the 24-bit RGB color
+        Color c = {(u8)(attr.true_fcolor >> 16), (u8)(attr.true_fcolor >> 8), (u8)attr.true_fcolor};
+        
+        // Hijack palette entry #254 and reprogram it with our true color
+        mPalette[254] = c; 
+        final_fc = 254; // Use this temporary index for drawing
+        palette_needs_update = true;
+    }
+
+    // Check if the background is in true color mode
+    if (attr.is_truecolor & 2) { 
+        // Unpack the 24-bit RGB color
+        Color c = {(u8)(attr.true_bcolor >> 16), (u8)(attr.true_bcolor >> 8), (u8)attr.true_bcolor};
+        
+        // Hijack palette entry #255 and reprogram it with our true color
+        mPalette[255] = c;
+        final_bc = 255; // Use this temporary index for drawing
+        palette_needs_update = true;
+    }
+
+    // If we changed any palette entry, we must tell the screen renderer to update its internal color lookup table.
+    if (palette_needs_update) {
+        setupPalette(false); 
+    }
+    
+    // --- Phase 2: Geometry Calculation & Rendering (Copied from original drawGlyph) ---
+    // The rest of this code is the original, proven drawing logic.
+    // We just replace the original 'fc' and 'bc' parameters with our 'final_fc' and 'final_bc'.
+    
+    if (x >= mWidth || y >= mHeight) return;
+
+    s32 w = (dw ? FW(2) : FW(1)), h = FH(1);
+    if (x + w > mWidth) w = mWidth - x;
+    if (y + h > mHeight) h = mHeight - y;
+
+    Font::Glyph *glyph = (Font::Glyph *)Font::instance()->getGlyph(code);
+    if (!glyph) {
+        fillRect(x, y, w, h, final_bc); // Use final_bc
+        return;
+    }
+
+    s32 top = glyph->top;
+    if (top < 0) top = 0;
+
+    s32 left = glyph->left;
+    if ((s32)x + left < 0) left = -x;
+
+    s32 width = glyph->width;
+    if (width > w - left) width = w - left;
+    if ((s32)x + left + width > (s32)mWidth) width = mWidth - ((s32)x + left);
+    if (width < 0) width = 0;
+
+    s32 height = glyph->height;
+    if (height > h - top) height = h - top;
+    if (y + top + height > mHeight) height = mHeight - (y + top);
+    if (height < 0) height = 0;
+
+    if (top) fillRect(x, y, w, top, final_bc); // Use final_bc
+    if (left > 0) fillRect(x, y + top, left, height, final_bc); // Use final_bc
+
+    s32 right = width + left;
+    if (w > right) fillRect((s32)x + right, y + top, w - right, height, final_bc); // Use final_bc
+
+    s32 bot = top + height;
+    if (h > bot) fillRect(x, y + bot, w, h - bot, final_bc); // Use final_bc
+
+    x += left;
+    y += top;
+    if (x >= mWidth || y >= mHeight || !width || !height) return;
+
+    u32 nwidth = width, nheight = height;
+    rotateRect(x, y, nwidth, nheight);
+
+    u8 *pixmap = glyph->pixmap;
+    u32 wdiff = glyph->width - width, hdiff = glyph->height - height;
+
+    if (wdiff) {
+        if (mRotateType == Rotate180) pixmap += wdiff;
+        else if (mRotateType == Rotate270) pixmap += wdiff * glyph->pitch;
+    }
+
+    if (hdiff) {
+        if (mRotateType == Rotate90) pixmap += hdiff;
+        else if (mRotateType == Rotate180) pixmap += hdiff * glyph->pitch;
+    }
+
+    adjustOffset(x, y);
+    for (; nheight--; y++, pixmap += glyph->pitch) {
+        if ((mScrollType == YWrap) && y > mOffsetMax) y -= mOffsetMax + 1;
+        (this->*draw)(x, y, nwidth, final_fc, final_bc, pixmap); // Use final_fc and final_bc
+    }
 }
 
 void Screen::rotateRect(u32 &x, u32 &y, u32 &w, u32 &h)

@@ -72,7 +72,7 @@ fbterm-fbdev.o: fbdev.cpp \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/asm-generic/posix_types.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/linux/fb.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/linux/i2c.h \
- fbdev.h screen.h lib/type.h lib/instance.h font.h
+ fbdev.h screen.h lib/type.h lib/instance.h lib/vterm.h lib/type.h font.h
 
 /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/stdlib.h:
 
@@ -227,5 +227,9 @@ screen.h:
 lib/type.h:
 
 lib/instance.h:
+
+lib/vterm.h:
+
+lib/type.h:
 
 font.h:

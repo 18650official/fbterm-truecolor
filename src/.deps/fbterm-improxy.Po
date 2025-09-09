@@ -105,7 +105,7 @@ fbterm-improxy.o: improxy.cpp \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/bits/list.tcc \
  lib/io.h lib/type.h lib/instance.h immessage.h fbconfig.h lib/type.h \
  lib/instance.h fbshell.h lib/shell.h lib/io.h lib/vterm.h fbshellman.h \
- font.h screen.h input.h fbterm.h \
+ font.h screen.h lib/vterm.h input.h fbterm.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/uClibc_clk_tck.h
 
 /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/unistd.h:
@@ -343,6 +343,8 @@ fbshellman.h:
 font.h:
 
 screen.h:
+
+lib/vterm.h:
 
 input.h:
 

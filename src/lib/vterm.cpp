@@ -44,15 +44,23 @@ VTerm::CharAttr VTerm::normal_char_attr()
 	return a;
 }
 
+// VTerm::CharAttr VTerm::erase_char_attr()
+// {
+// 	CharAttr a(default_char_attr);
+
+// 	a.fcolor = char_attr.fcolor;
+// 	a.bcolor = char_attr.bcolor;
+// 	a.blink = char_attr.blink;
+
+// 	return a;
+// }
+
 VTerm::CharAttr VTerm::erase_char_attr()
 {
-	CharAttr a(default_char_attr);
-
-	a.fcolor = char_attr.fcolor;
-	a.bcolor = char_attr.bcolor;
-	a.blink = char_attr.blink;
-
-	return a;
+    // 擦除操作应该永远只使用最纯粹的默认属性。
+    // 我们直接返回一个默认属性的副本，
+    // 不再从当前绘图属性(char_attr)中继承任何颜色或状态。
+    return default_char_attr;
 }
 
 VTerm::ModeFlag::ModeFlag()

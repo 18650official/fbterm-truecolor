@@ -72,7 +72,8 @@ fbterm-fbshell.o: fbshell.cpp \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/asm-generic/ioctl.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/ioctl-types.h \
  fbshell.h lib/shell.h lib/io.h lib/type.h lib/instance.h lib/vterm.h \
- fbshellman.h lib/type.h lib/instance.h fbconfig.h screen.h improxy.h \
+ fbshellman.h lib/type.h lib/instance.h fbconfig.h screen.h lib/vterm.h \
+ improxy.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/list \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/bits/stl_algobase.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/bits/functexcept.h \
@@ -268,6 +269,8 @@ lib/instance.h:
 fbconfig.h:
 
 screen.h:
+
+lib/vterm.h:
 
 improxy.h:
 

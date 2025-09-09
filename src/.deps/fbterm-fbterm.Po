@@ -62,7 +62,7 @@ fbterm-fbterm.o: fbterm.cpp \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/linux/kdev_t.h \
  ../config.h fbterm.h lib/type.h lib/instance.h fbshell.h lib/shell.h \
  lib/io.h lib/type.h lib/instance.h lib/vterm.h fbshellman.h fbconfig.h \
- fbio.h lib/io.h screen.h input.h input_key.h \
+ fbio.h lib/io.h screen.h lib/vterm.h input.h input_key.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/linux/keyboard.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/linux/wait.h \
  mouse.h signalfd.h \
@@ -220,6 +220,8 @@ fbio.h:
 lib/io.h:
 
 screen.h:
+
+lib/vterm.h:
 
 input.h:
 

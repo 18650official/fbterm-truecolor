@@ -574,8 +574,23 @@ void VTerm::set_display_attr()
             // Check for the 256-color sequence: ESC [ 38 ; 5 ; <n> m
             if (n + 2 <= npar && param[n + 1] == 5) {
                 char_attr.fcolor = param[n + 2];
+				char_attr.is_truecolor &= ~1; //clear fore true-color mark
                 n += 2; // VERY IMPORTANT: Skip the next two parameters we've just used
             }
+			// Check for true-color
+			else if (n + 4 <= npar && param[n + 1] == 2) {
+				// "n + 4 <= npar": 检查参数够不够 (需要 2, R, G, B 共4个)
+				// "param[n + 1] == 2": 检查“语法选择器”是不是 2。
+				// 如果都是，说明这是24位真彩色指令！
+				
+				u8 r = param[n + 2]; // 第3个参数是 Red
+				u8 g = param[n + 3]; // 第4个参数是 Green
+				u8 b = param[n + 4]; // 第5个参数是 Blue
+				
+				char_attr.true_fcolor = (r << 16) | (g << 8) | b; // r*8 + g*8 + b*8
+				char_attr.is_truecolor |= 1;                     // 设置真彩色标志
+				n += 4;                                          // 跳过已经用掉的四个参数，继续解析
+    		}
             break;
 
         // --- Default Foreground Color ---
@@ -593,8 +608,22 @@ void VTerm::set_display_attr()
             // Check for the 256-color sequence: ESC [ 48 ; 5 ; <n> m
             if (n + 2 <= npar && param[n + 1] == 5) {
                 char_attr.bcolor = param[n + 2];
+				char_attr.is_truecolor &= ~2; //清除高位标志位
                 n += 2; // VERY IMPORTANT: Skip the next two parameters
             }
+			else if (n + 4 <= npar && param[n + 1] == 2) {
+				// "n + 4 <= npar": 检查参数够不够 (需要 2, R, G, B 共4个)
+				// "param[n + 1] == 2": 检查“语法选择器”是不是 2。
+				// 如果都是，说明这是24位真彩色指令！
+				
+				u8 r = param[n + 2]; // 第3个参数是 Red
+				u8 g = param[n + 3]; // 第4个参数是 Green
+				u8 b = param[n + 4]; // 第5个参数是 Blue
+				
+				char_attr.true_bcolor = (r << 16) | (g << 8) | b; // r*8 + g*8 + b*8
+				char_attr.is_truecolor |= 2;                     // 设置真彩色标志
+				n += 4;                                          // 跳过已经用掉的四个参数，继续解析
+    		}
             break;
 
         // --- Default Background Color ---

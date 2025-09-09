@@ -43,6 +43,10 @@ public:
 		u16 blink : 1;
 		u16 reverse : 1;
 		u16 type : 2;
+		// 24-bit color support
+		u32 true_fcolor;
+		u32 true_bcolor;
+		u16 is_truecolor : 2; // 0=none 1=fore 2=back 3=all
 	};
 
 	typedef enum {
