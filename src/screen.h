@@ -59,7 +59,7 @@ public :
 	virtual void switchVc(bool enter);
 	// Our brand new function for rendering emoji from raw bitmaps!
     // We make it virtual so that specific drivers like FbDev can implement it.
-    virtual void drawEmojiBitmap(u32 x, u32 y, u32 code) = 0;
+    virtual bool drawEmojiBitmap(u32 x, u32 y, u32 code) = 0;
 
 protected:
 	u32 mWidth, mHeight;

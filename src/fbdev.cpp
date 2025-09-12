@@ -210,7 +210,7 @@ void FbDev::setupPalette(bool restore)
 // This is the final implementation of our custom emoji renderer,
 // integrated as a member function of the FbDev class.
 
-void FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code)
+bool FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code)
 {
     // 1. Construct the path to the bitmap file based on the Unicode code point.
     char bitmap_path[256];
@@ -222,7 +222,7 @@ void FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code)
     if (!fp) {
         // If the specific emoji bitmap doesn't exist, we do nothing.
         // A more advanced version could draw a placeholder 'missing' symbol here.
-        return;
+        return false;
     }
 
     // --- We assume all our emoji bitmaps have been pre-processed to 16x16 pixels ---
@@ -268,4 +268,5 @@ void FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code)
             *dest++ = color16;
         }
     }
+	return true;
 }
