@@ -40,7 +40,7 @@ private:
 	FbShell();
 	~FbShell();
 
-	virtual void drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u16 *chars, bool *dws);
+	virtual void drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u32 *chars, bool *dws);
 	virtual bool moveChars(u16 sx, u16 sy, u16 dx, u16 dy, u16 w, u16 h);
 	virtual void drawCursor(CharAttr attr, u16 x, u16 y, u16 c);
 	virtual void modeChanged(ModeType type);
@@ -66,7 +66,7 @@ private:
 		}
 		bool showed;
 		u16 x, y;
-		u16 code;
+		u32 code;
 		CharAttr attr;
 	} mCursor;
 

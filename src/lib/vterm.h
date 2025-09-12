@@ -71,6 +71,7 @@ public:
 		u32 true_fcolor;
 		u32 true_bcolor;
 		u16 is_truecolor : 2; // 0=none 1=fore 2=back 3=all
+		u16 is_emoji : 1; 
 	};
 
 	typedef enum {
@@ -118,7 +119,7 @@ public:
 	static s32 charWidth(u32 ucs);
 
 protected:
-	virtual void drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u16 *chars, bool *dws) = 0;
+	virtual void drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u32 *chars, bool *dws) = 0;
 	virtual bool moveChars(u16 sx, u16 sy, u16 dx, u16 dy, u16 w, u16 h) { return false; }
 	virtual void drawCursor(CharAttr attr, u16 x, u16 y, u16 c) {}
 	virtual void sendBack(const s8 *data) {}
@@ -252,7 +253,7 @@ private:
 	CharsetMap s_g0_charset, s_g1_charset;
 
 	// terminal info
-	u16 *text;
+	u32 *text;
 	CharAttr *attrs;
 	s8 *tab_stops;
 	u16 *linenumbers;

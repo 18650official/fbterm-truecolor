@@ -336,7 +336,8 @@ bool VTerm::init_ambiguous_wide()
 {
 	bool val = false;
 	Config::instance()->getOption("ambiguous-wide", val);
-	return val;
+	// return val;
+	return true;
 }
 
 void Shell::initWordChars(s8 *buf, u32 len)
@@ -385,7 +386,7 @@ FbShell::~FbShell()
 // }
 
 // This is the FINAL, CORRECTED, state-aware, and performance-aware version of FbShell::drawChars.
-void FbShell::drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u16 *chars, bool *dws)
+void FbShell::drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u32 *chars, bool *dws)
 {
     if (manager->activeShell() != this) return;
 
@@ -404,6 +405,22 @@ void FbShell::drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u16 *chars,
         screen->drawText(FW(x), FH(y), attr.fcolor, attr.bcolor, num, chars, dws);
         return;
     }
+
+	// --- The Grand Central Dispatcher ---
+    // The 'attr' object here represents the SHARED attribute for the entire 'chars' array,
+    // thanks to the optimization done by VTerm::expose().
+
+    if (attr.is_emoji) {
+        // --- Path 1: Emoji Rendering (Our New Custom Engine!) ---
+        // This means the ENTIRE run consists of emoji characters.
+        u32 current_x = FW(x);
+        for (u16 i = 0; i < num; i++) {
+            // Call our brand new function to draw the emoji from a bitmap file.
+            screen->drawEmojiBitmap(current_x, FH(y), chars[i]);
+            // Advance the cursor. We assume all our emoji are double-width here.
+            current_x += FW(dws[i] ? 2 : 1);
+        }
+	}
 
     // --- Path B: True Color Drawing ---
 	// attr.intensity = 1; // 1 means 'normal' intensity, see vterm.h
@@ -753,7 +770,7 @@ void FbShell::mouseInput(u16 x, u16 y, s32 type, s32 buttons)
 		adjustCharAttr(attr);
 
 		bool dw = (attr.type != CharAttr::Single);
-		u16 code = charCode(x, y);
+		u32 code = charCode(x, y);
 
 		if (attr.type == CharAttr::DoubleRight) x--;
 		screen->drawText(FW(x), FH(y), attr.bcolor, attr.fcolor, 1, &code, &dw);

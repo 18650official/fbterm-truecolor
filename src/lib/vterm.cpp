@@ -213,7 +213,7 @@ void VTerm::resize(u16 w, u16 h)
 	}
 
 	if (new_max_width > max_width || new_max_height > max_height) {
-		u16 *new_text = new u16[new_max_width * (history_lines + new_max_height)];
+		u32 *new_text = new u32[new_max_width * (history_lines + new_max_height)];
 		CharAttr *new_attrs = new CharAttr[new_max_width * (history_lines + new_max_height)];
 
 		if (text) {
@@ -325,10 +325,10 @@ void VTerm::input(const u8 *buf, u32 count)
 					}
 					/* Got a whole character */
 					c = cur_char;
-					/* Reject overlong sequences */
-					if (c <= utf8_length_changes[npar - 1] ||
-						c > utf8_length_changes[npar])
-						c = 0xfffd;
+					// /* Reject overlong sequences */
+					// if (c <= utf8_length_changes[npar - 1] ||
+					// 	c > utf8_length_changes[npar])
+					// 	c = 0xfffd;
 				} else {
 					/* Unexpected continuation byte */
 					utf8_count = 0;
@@ -375,6 +375,26 @@ void VTerm::input(const u8 *buf, u32 count)
 			/* Replace invalid Unicode code points with U+FFFD too */
 			if ((c >= 0xd800 && c <= 0xdfff) || c == 0xfffe || c == 0xffff)
 				c = 0xfffd;
+			
+			// ===================================================================
+        // ==         MIKU'S CUSTOM EMOJI DETECTION LOGIC START         ==
+        // ===================================================================
+        // This is our new "customs checkpoint".
+        // It checks if the fully decoded Unicode character `c` is an emoji.
+        // If so, it sets our custom flag in the current character attribute.
+        
+        if ((c >= 0x1F300 && c <= 0x1F9FF) || // Main Emoji & Pictographs blocks
+            (c >= 0x2600 && c <= 0x27BF))     // Older symbols often used as emoji
+        {
+            char_attr.is_emoji = 1; // It's an emoji, set the flag!
+        } else {
+            char_attr.is_emoji = 0; // It's a normal character, clear the flag.
+        }
+        
+        // ===================================================================
+        // ==          MIKU'S CUSTOM EMOJI DETECTION LOGIC END          ==
+        // ===================================================================
+
 			tc = c;
 		}  else {	/* no utf or alternate charset mode */
 			tc = translate_char(mode_flags.toggle_meta ? (c | 0x80) : c);
@@ -424,9 +444,13 @@ void VTerm::input(const u8 *buf, u32 count)
 
 void VTerm::do_normal_char()
 {
-	if (cur_char > 0xffff) cur_char = 0xfffd;
+	bool is_emoji = ((cur_char >= 0x1F300 && cur_char <= 0x1F9FF) ||
+                         (cur_char >= 0x2600 && cur_char <= 0x27BF));
+
+	if (cur_char > 0xffff && !is_emoji) cur_char = 0xfffd;
 
 	s32 cw = charWidth(cur_char);
+	if(is_emoji) cw = 2;
 	if (cw <= 0) return;
 
 	bool dw = (cw == 2);
@@ -560,7 +584,7 @@ void VTerm::expose(u16 x, u16 y, u16 w, u16 h)
 
 		CharAttr attr = attrs[yp + startx];
 		bool dws[width];
-		u16 codes[width], num = 0;
+		u32 codes[width], num = 0;
 		u16 cur, start = startx;
 
 		for (cur = startx; cur <= endx; cur++) {

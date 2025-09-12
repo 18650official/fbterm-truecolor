@@ -170,7 +170,20 @@ int mk_wcwidth(wchar_t ucs)
     { 0x10A01, 0x10A03 }, { 0x10A05, 0x10A06 }, { 0x10A0C, 0x10A0F },
     { 0x10A38, 0x10A3A }, { 0x10A3F, 0x10A3F }, { 0x1D167, 0x1D169 },
     { 0x1D173, 0x1D182 }, { 0x1D185, 0x1D18B }, { 0x1D1AA, 0x1D1AD },
-    { 0x1D242, 0x1D244 }, { 0xE0001, 0xE0001 }, { 0xE0020, 0xE007F },
+    { 0x1D242, 0x1D244 }, 
+    // =================================================================
+    // ==         MIKU'S FINAL PATCH TO UNLOCK MODERN EMOJI         ==
+    // =================================================================
+    // Register all modern emoji and symbol blocks as double-width characters.
+    { 0x2700, 0x27BF }, // Dingbats
+    { 0x1F300, 0x1F5FF }, // Miscellaneous Symbols and Pictographs
+    { 0x1F600, 0x1F64F }, // Emoticons
+    { 0x1F680, 0x1F6FF }, // Transport and Map Symbols
+    { 0x1F900, 0x1F9FF }, // Supplemental Symbols and Pictographs
+    // =================================================================
+    // ==                     END OF MIKU'S PATCH                   ==
+    // =================================================================
+    { 0xE0001, 0xE0001 }, { 0xE0020, 0xE007F },
     { 0xE0100, 0xE01EF }
   };
 
@@ -282,6 +295,19 @@ int mk_wcwidth_cjk(wchar_t ucs)
     { 0x261C, 0x261C }, { 0x261E, 0x261E }, { 0x2640, 0x2640 },
     { 0x2642, 0x2642 }, { 0x2660, 0x2661 }, { 0x2663, 0x2665 },
     { 0x2667, 0x266A }, { 0x266C, 0x266D }, { 0x266F, 0x266F },
+    // =================================================================
+    // ==         MIKU'S FINAL PATCH TO UNLOCK MODERN EMOJI         ==
+    // =================================================================
+    // Register all modern emoji and symbol blocks as double-width characters.
+    { 0x2700, 0x27BF }, // Dingbats
+    { 0x1F300, 0x1F5FF }, // Miscellaneous Symbols and Pictographs
+    { 0x1F600, 0x1F64F }, // Emoticons
+    { 0x1F680, 0x1F6FF }, // Transport and Map Symbols
+    { 0x1F900, 0x1F9FF }, // Supplemental Symbols and Pictographs
+    // =================================================================
+    // ==                     END OF MIKU'S PATCH                   ==
+    // =================================================================
+
     { 0x273D, 0x273D }, { 0x2776, 0x277F }, { 0xE000, 0xF8FF },
     { 0xFFFD, 0xFFFD }, { 0xF0000, 0xFFFFD }, { 0x100000, 0x10FFFD }
   };
@@ -310,7 +336,7 @@ int mk_wcswidth_cjk(const wchar_t *pwcs, size_t n)
 
 #include "vterm.h"
 
-bool VTerm::ambiguous_wide = false;
+bool VTerm::ambiguous_wide = true;
 
 s32 VTerm::charWidth(u32 ucs)
 {

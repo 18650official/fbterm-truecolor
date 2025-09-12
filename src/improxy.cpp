@@ -389,7 +389,7 @@ void ImProxy::doFillRect(Message *m)
 	Screen::instance()->fillRect(rect.x, rect.y, rect.w, rect.h, m->fillRect.color);
 }
 
-static void utf8_to_utf16(u8 *utf8, u16 *utf16, u16 &len)
+static void utf8_to_utf16(u8 *utf8, u32 *utf16, u16 &len)
 {
 	u8 *end = utf8 + len;
 	len = 0;
@@ -415,7 +415,7 @@ void ImProxy::doDrawText(Message *m)
 	u16 len = m->len - OFFSET(Message, drawText.texts);
 	u8 *utf8 = (u8 *)(m->drawText.texts);
 
-	u16 utf16[len];
+	u32 utf16[len];
 	utf8_to_utf16(utf8, utf16, len);
 
 	if (!len) return;

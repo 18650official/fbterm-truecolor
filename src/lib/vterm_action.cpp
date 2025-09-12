@@ -551,6 +551,7 @@ void VTerm::set_display_attr()
         // Reset all attributes
         case 0:
             char_attr = default_char_attr;
+			char_attr.is_emoji = 0; // CRITICAL: Also reset our custom emoji flag!
 			clear_param();
             break;
 

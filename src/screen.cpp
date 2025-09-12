@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctime>
 #include "screen.h"
 #include "font.h"
 #include "fbshellman.h"
@@ -197,11 +198,12 @@ void Screen::eraseMargin(bool top, u16 h)
 	}
 }
 
-void Screen::drawText(u32 x, u32 y, u8 fc, u8 bc, u16 num, u16 *text, bool *dw)
+void Screen::drawText(u32 x, u32 y, u8 fc, u8 bc, u16 num, u32 *text, bool *dw)
 {
 	u32 startx, fw = FW(1);
 
-	u16 startnum, *starttext;
+	u16 startnum; 
+	u32 *starttext;
 	bool *startdw, draw_space = false, draw_text = false;
 
 	for (; num; num--, text++, dw++, x += fw) {
@@ -243,10 +245,10 @@ void Screen::drawText(u32 x, u32 y, u8 fc, u8 bc, u16 num, u16 *text, bool *dw)
 // True-color draw function
 // screen.cpp, add this new function somewhere
 
-void Screen::drawTextTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 num, u16 *text, bool *dw)
+void Screen::drawTextTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 num, u32 *text, bool *dw)
 {
     u32 startx, fw = FW(1);
-    u16 startnum, *starttext;
+    u32 startnum, *starttext;
     bool *startdw, draw_space = false, draw_text = false;
 
     // This loop logic is identical to the original drawText
@@ -284,16 +286,82 @@ void Screen::drawTextTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 num, u16 
     }
 }
 
-void Screen::drawGlyphs(u32 x, u32 y, u8 fc, u8 bc, u16 num, u16 *text, bool *dw)
+// void Screen::drawGlyphs(u32 x, u32 y, u8 fc, u8 bc, u16 num, u32 *text, bool *dw)
+// {
+// 	for (; num--; text++, dw++) {
+// 		bool is_emoji = false;
+// 		u32 c = *text;
+
+// 		if ((c >= 0x1F300 && c <= 0x1F9FF) || // Main Emoji & Pictographs blocks
+//             (c >= 0x2600 && c <= 0x27BF))     // Older symbols often used as emoji
+//         {
+//             is_emoji = 1; // It's an emoji, set the flag!
+//         } else {
+//             is_emoji = 0; // It's a normal character, clear the flag.
+//         }
+
+// 		if(!is_emoji) drawGlyph(x, y, fc, bc, (u16)*text, *dw); // 绘制常规字体
+// 		else{
+// 			// 绘制emoji
+// 			drawEmojiBitmap(x, y, c);
+// 			*dw = 1;
+// 		}
+// 		x += *dw ? FW(2) : FW(1);
+// 	}
+// }
+
+// This is Miku's ultimate version of drawGlyphs.
+// It includes black box logging and a fallback mechanism.
+void Screen::drawGlyphs(u32 x, u32 y, u8 fc, u8 bc, u16 num, u32 *text, bool *dw)
 {
-	for (; num--; text++, dw++) {
-		drawGlyph(x, y, fc, bc, *text, *dw);
-		x += *dw ? FW(2) : FW(1);
-	}
+    // --- Miku's Black Box Recorder ---
+    // We use a static FILE pointer so we only have to open the file once
+    // for the entire lifetime of the program. This is much more efficient.
+    static FILE* log_fp = NULL;
+    if (log_fp == NULL) {
+        // Open the log file in append mode ("a").
+        // If it fails, log_fp will remain NULL and we'll skip logging.
+        log_fp = fopen("/root/fbterm_log.txt", "a");
+        if (log_fp) {
+            fprintf(log_fp, "\n\n--- FBTERM LOG STARTED AT %ld ---\n", time(NULL));
+        }
+    }
+    // --- End of Recorder Setup ---
+
+    for (; num--; text++, dw++) {
+        // Dereference the pointer to get the full 32-bit Unicode code point.
+        u32 c = *text;
+
+        // Log the character code to our file for analysis.
+        if (log_fp) {
+            fprintf(log_fp, "drawGlyphs received code: 0x%X\n", c);
+            // For immediate debugging, you can uncomment the next line, but it will be very slow.
+            // fflush(log_fp);
+        }
+
+        // Miku's double-check emoji determination logic.
+        bool is_emoji = ((c >= 0x1F300 && c <= 0x1F9FF) ||
+                         (c >= 0x2600 && c <= 0x27BF));
+
+        if (is_emoji) {
+          
+            drawEmojiBitmap(x, y, c);
+            
+        } else {
+            // --- Standard Character Path ---
+            // If it's not an emoji, use the standard glyph drawing function.
+            // We cast `c` to u16 here. This is safe because all non-emoji characters
+            // we care about (like CJK) have code points that fit within a u16.
+            drawGlyph(x, y, fc, bc, (u16)c, *dw);
+        }
+        
+        // Advance the cursor based on the character width.
+        x += *dw ? FW(2) : FW(1);
+    }
 }
 
 // 24-bit support
-void Screen::drawGlyphsTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 num, u16 *text, bool *dw)
+void Screen::drawGlyphsTrueColor(u32 x, u32 y, VTerm::CharAttr attr, u16 num, u32 *text, bool *dw)
 {
     for (; num--; text++, dw++) {
         drawGlyphTrueColor(x, y, attr, *text, *dw);
