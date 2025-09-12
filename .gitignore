@@ -1,0 +1,29 @@
+# 编译中间文件
+*.o
+*.a
+*.so
+*.lo
+*.la
+*.obj
+*.dll
+*.lib
+*.exe
+*.out
+
+# CMake/Make 生成的中间目录
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+
+# 编译输出目录（如果有）
+build/
+dist/
+bin/
+lib/
+
+# 其他临时文件
+*.log
+*.tmp
+*.swp
+
