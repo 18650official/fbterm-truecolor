@@ -2,6 +2,8 @@
 
 This is an enhanced version of the **`fbterm`** project, adding support for **xterm-style 256 colors** and **24-bit true color display**.
 
+![Emoji Display!](doc/3.png)
+
 ![256 Color display](doc/1.png)
 
 ![True-color display](doc/2.png)
@@ -27,6 +29,12 @@ Compared to the original `fbterm-1.7`, this version provides:
 
   * Implemented parsing for true color escape sequences `\x1b[38;2;R;G;Bm` (foreground) and `\x1b[48;2;R;G;Bm` (background).
   * Added a robust “on-the-fly palette reprogramming” mechanism to efficiently support true color without breaking the original rendering architecture.
+  
+* **✨ Custom Color Emoji Rendering Engine (NEW!)**
+    * Implemented a custom bitmap rendering pipeline to display **full-color emoji**.
+    * This engine bypasses the system's often limited font rendering stack (Freetype/HarfBuzz) for emoji, reading pre-processed raw bitmap assets and blitting them directly to the framebuffer.
+    * This allows for vibrant emoji display even on minimal embedded systems where standard methods fail.
+
 
 * **Rendering Logic Bug Fixes**
 
@@ -125,6 +133,25 @@ echo "Hello, world!" > /dev/tty1
 
 This will display the message directly in the `fbterm` terminal at startup.
 
+#### 4. Enabling Color Emoji Support (Advanced) / 启用彩色Emoji支持 (高级)
+
+The custom emoji rendering engine requires a pre-processed bitmap asset pack. A Python script is provided to generate these assets.
+
+要使用自定义Emoji渲染功能，你需要预先处理并部署一套位图“资产包”。
+
+* **Step 1: Prepare Assets on your PC / 第一步：在电脑上准备资产**
+    * You will need `python3` with the `Pillow` and `fonttools` libraries (`pip install Pillow fonttools`).
+    * You will need the `BitsNPicas.jar` tool to extract PNGs from a color emoji font like `NotoColorEmoji.ttf`.
+    * Run the included `process_emoji.py` script to convert the extracted PNGs into a directory of raw, resized RGB bitmaps (e.g., a folder named `emoji_bitmaps_16x16`).
+
+* **Step 2: Deploy Assets to Target / 第二步：部署资产到目标设备**
+    * Copy the entire generated bitmap directory to `/usr/share/emoji_bitmaps/` on your target device. The path is hard-coded in the renderer.
+
+* **Step 3: Run! / 第三步：运行！**
+    * Once the bitmap assets are in place, `fbterm` will automatically detect and render any emoji it encounters using the custom engine. If an emoji bitmap is not found, it will fall back to attempting to render it with the system font.
+    * *(一旦位图资产就位，`fbterm`将自动检测并使用自定义引擎来渲染Emoji。如果某个Emoji的位图文件不存在，它会自动降级，尝试使用系统字体来渲染)*
+
+
 ## License
 
 This project inherits from the original **FbTerm** project and is licensed under **GNU General Public License v2.0 or later (GPLv2+)**. See the `COPYING` file for details.
@@ -132,7 +159,9 @@ This project inherits from the original **FbTerm** project and is licensed under
 ---
 
 # FBTerm True-color
-这是一个基于`fbterm`项目的加强版，在原有项目的基础上，增加了`xterm`格式的256色和24位真彩色的显示支持。
+这是一个基于`fbterm`项目的加强版，在原有项目的基础上，增加了`xterm`格式的256色和24位真彩色的显示支持，同时加入了`Noto Emoji`的支持，可以显示Emoji符号。
+
+![Emoji Display!](doc/3.png)
 
 ![256 Color display](doc/1.png)
 
@@ -155,6 +184,11 @@ This project inherits from the original **FbTerm** project and is licensed under
 * **24位真彩色支持 (24-bit True Color Support)**
     * 全新实现了对 `\x1b[38;2;R;G;Bm` (前景) 和 `\x1b[48;2;R;G;Bm` (背景) 真彩色序列的解析。
     * 通过一套稳健的、无状态的“即时调色板重编程”方案，在不破坏原渲染架构的基础上，高效地实现了真彩色显示。
+
+* **✨ 自定义彩色Emoji渲染引擎 (全新！)**
+    * 实现了一套自定义的位图渲染管线，用以显示**全彩色的Emoji**。
+    * 该引擎在渲染Emoji时，会绕开系统自带的、功能可能受限的字体渲染栈（Freetype/HarfBuzz），通过读取预处理好的原始位图资产，并将其直接“刷”到Framebuffer上。
+    * 这使得`fbterm`即使在极简的嵌入式系统上，也能拥有绚丽的Emoji显示能力。
 
 * **渲染逻辑Bug修复 (Rendering Logic Bug Fixes)**
     * 修正了 `VTerm::expose` 渲染优化函数中的核心缺陷——其 `CharAttr::operator!=` 比较运算符无法识别真彩色属性，导致连续的真彩色块无法被正确分段渲染（“颜色卡住”Bug）。
