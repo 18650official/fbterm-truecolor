@@ -19,8 +19,8 @@ cmake_install.cmake
 # 编译输出目录（如果有）
 build/
 dist/
-bin/
-lib/
+# bin/
+# lib/
 
 # 其他临时文件
 *.log
