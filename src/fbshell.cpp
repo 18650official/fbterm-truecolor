@@ -406,21 +406,21 @@ void FbShell::drawChars(CharAttr attr, u16 x, u16 y, u16 w, u16 num, u32 *chars,
         return;
     }
 
-	// --- The Grand Central Dispatcher ---
-    // The 'attr' object here represents the SHARED attribute for the entire 'chars' array,
-    // thanks to the optimization done by VTerm::expose().
+	// // --- The Grand Central Dispatcher ---
+    // // The 'attr' object here represents the SHARED attribute for the entire 'chars' array,
+    // // thanks to the optimization done by VTerm::expose().
 
-    if (attr.is_emoji) {
-        // --- Path 1: Emoji Rendering (Our New Custom Engine!) ---
-        // This means the ENTIRE run consists of emoji characters.
-        u32 current_x = FW(x);
-        for (u16 i = 0; i < num; i++) {
-            // Call our brand new function to draw the emoji from a bitmap file.
-            screen->drawEmojiBitmap(current_x, FH(y), chars[i]);
-            // Advance the cursor. We assume all our emoji are double-width here.
-            current_x += FW(dws[i] ? 2 : 1);
-        }
-	}
+    // if (attr.is_emoji) {
+    //     // --- Path 1: Emoji Rendering (Our New Custom Engine!) ---
+    //     // This means the ENTIRE run consists of emoji characters.
+    //     u32 current_x = FW(x);
+    //     for (u16 i = 0; i < num; i++) {
+    //         // Call our brand new function to draw the emoji from a bitmap file.
+    //         screen->drawEmojiBitmap(current_x, FH(y), chars[i], attr.bcolor);
+    //         // Advance the cursor. We assume all our emoji are double-width here.
+    //         current_x += FW(dws[i] ? 2 : 1);
+    //     }
+	// }
 
     // --- Path B: True Color Drawing ---
 	// attr.intensity = 1; // 1 means 'normal' intensity, see vterm.h

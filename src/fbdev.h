@@ -34,6 +34,6 @@ private:
 	virtual void setupOffset();
 	virtual void setupPalette(bool restore);
 	virtual const s8 *drvId();
-	bool drawEmojiBitmap(u32 x, u32 y, u32 code) override;
+	bool drawEmojiBitmap(u32 x, u32 y, u32 code, u8 bc) override;
 };
 #endif

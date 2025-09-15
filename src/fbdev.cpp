@@ -210,62 +210,123 @@ void FbDev::setupPalette(bool restore)
 // This is the final implementation of our custom emoji renderer,
 // integrated as a member function of the FbDev class.
 
-bool FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code)
+// bool FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code)
+// {
+//     // 1. Construct the path to the bitmap file based on the Unicode code point.
+//     char bitmap_path[256];
+//     // Use %X for uppercase hexadecimal, matching our asset filenames.
+//     sprintf(bitmap_path, "/usr/share/emoji/%X.rgb", code);
+
+//     // 2. Open and read the raw bitmap file.
+//     FILE* fp = fopen(bitmap_path, "rb");
+//     if (!fp) {
+//         // If the specific emoji bitmap doesn't exist, we do nothing.
+//         // A more advanced version could draw a placeholder 'missing' symbol here.
+//         return false;
+//     }
+
+//     // --- We assume all our emoji bitmaps have been pre-processed to 16x16 pixels ---
+//     const int EMOJI_HEIGHT = 16;
+//     const int EMOJI_WIDTH  = 16;
+//     unsigned char emoji_buffer[EMOJI_HEIGHT * EMOJI_WIDTH * 3]; // 3 bytes per pixel (RGB888)
+
+//     // Read the entire bitmap into our buffer
+//     size_t bytes_read = fread(emoji_buffer, 1, sizeof(emoji_buffer), fp);
+//     fclose(fp);
+
+//     // Basic check to ensure the file was the expected size
+//     if (bytes_read != sizeof(emoji_buffer)) {
+//         return; 
+//     }
+
+//     // 3. Get the starting address in the framebuffer memory.
+//     //    We use the class member `mVMemBase` which is already memory-mapped!
+//     unsigned short *vmem_start = (unsigned short *)mVMemBase;
+//     unsigned char *pixel_ptr = emoji_buffer;
+
+//     // 4. Loop through each pixel of our bitmap, convert it, and write it to the framebuffer.
+//     for (int row = 0; row < EMOJI_HEIGHT; row++) {
+//         // Check vertical screen bounds
+//         if ((y + row) >= mHeight) break;
+
+//         // Calculate the starting memory address for the current row
+//         unsigned short *dest = vmem_start + (y + row) * (mBytesPerLine / 2) + x;
+
+//         for (int col = 0; col < EMOJI_WIDTH; col++) {
+//             // Check horizontal screen bounds
+//             if ((x + col) >= mWidth) break;
+
+//             // Read the 24-bit R, G, B values from our buffer
+//             unsigned char r = *pixel_ptr++;
+//             unsigned char g = *pixel_ptr++;
+//             unsigned char b = *pixel_ptr++;
+
+//             // Use our proven formula to convert 24-bit RGB888 to 16-bit RGB565
+//             unsigned short color16 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
+
+//             // Write the final 16-bit color directly to the framebuffer memory!
+//             *dest++ = color16;
+//         }
+//     }
+// 	return true;
+// }
+
+// This is the new, enhanced version of drawEmojiBitmap with color keying (transparency).
+bool FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code, u8 bc)
 {
-    // 1. Construct the path to the bitmap file based on the Unicode code point.
+    // 1. Construct the path to the bitmap file.
     char bitmap_path[256];
-    // Use %X for uppercase hexadecimal, matching our asset filenames.
     sprintf(bitmap_path, "/usr/share/emoji/%X.rgb", code);
 
-    // 2. Open and read the raw bitmap file.
+    // 2. Open and read the bitmap file.
     FILE* fp = fopen(bitmap_path, "rb");
     if (!fp) {
-        // If the specific emoji bitmap doesn't exist, we do nothing.
-        // A more advanced version could draw a placeholder 'missing' symbol here.
+        // Here we can implement a fallback, like drawing a placeholder.
+        // For now, we just draw the background color for the cell.
+        // fillRect(x, y, FW(2), FH(1), bc); // Assuming emoji are double-width
         return false;
     }
 
-    // --- We assume all our emoji bitmaps have been pre-processed to 16x16 pixels ---
     const int EMOJI_HEIGHT = 16;
     const int EMOJI_WIDTH  = 16;
-    unsigned char emoji_buffer[EMOJI_HEIGHT * EMOJI_WIDTH * 3]; // 3 bytes per pixel (RGB888)
-
-    // Read the entire bitmap into our buffer
+    unsigned char emoji_buffer[EMOJI_HEIGHT * EMOJI_WIDTH * 3];
+    
     size_t bytes_read = fread(emoji_buffer, 1, sizeof(emoji_buffer), fp);
     fclose(fp);
 
-    // Basic check to ensure the file was the expected size
     if (bytes_read != sizeof(emoji_buffer)) {
+        fillRect(x, y, FW(2), FH(1), bc);
         return; 
     }
 
-    // 3. Get the starting address in the framebuffer memory.
-    //    We use the class member `mVMemBase` which is already memory-mapped!
+    // 3. Pre-fill the entire emoji area with the terminal's current background color.
+    // This is more efficient than checking pixels one by one.
+    fillRect(x, y, FW(2), FH(1), bc); // Assuming 16px font height and double width
+
+    // 4. Get the framebuffer memory address.
     unsigned short *vmem_start = (unsigned short *)mVMemBase;
     unsigned char *pixel_ptr = emoji_buffer;
 
-    // 4. Loop through each pixel of our bitmap, convert it, and write it to the framebuffer.
+    // 5. Loop through each pixel of our bitmap and draw ONLY the non-black pixels.
     for (int row = 0; row < EMOJI_HEIGHT; row++) {
-        // Check vertical screen bounds
         if ((y + row) >= mHeight) break;
 
-        // Calculate the starting memory address for the current row
         unsigned short *dest = vmem_start + (y + row) * (mBytesPerLine / 2) + x;
-
+        
         for (int col = 0; col < EMOJI_WIDTH; col++) {
-            // Check horizontal screen bounds
             if ((x + col) >= mWidth) break;
 
-            // Read the 24-bit R, G, B values from our buffer
             unsigned char r = *pixel_ptr++;
             unsigned char g = *pixel_ptr++;
             unsigned char b = *pixel_ptr++;
-
-            // Use our proven formula to convert 24-bit RGB888 to 16-bit RGB565
-            unsigned short color16 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
-
-            // Write the final 16-bit color directly to the framebuffer memory!
-            *dest++ = color16;
+            
+            // --- The Color Keying Logic! ---
+            // If the pixel from our bitmap is NOT pure black, then we draw it.
+            if (r != 0 || g != 0 || b != 0) {
+                unsigned short color16 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
+                // Write the pixel to the framebuffer, overwriting the background we pre-filled.
+                *(dest + col) = color16;
+            }
         }
     }
 	return true;

@@ -303,7 +303,7 @@ void Screen::drawGlyphs(u32 x, u32 y, u8 fc, u8 bc, u16 num, u32 *text, bool *dw
 		if(!is_emoji) drawGlyph(x, y, fc, bc, (u16)*text, *dw); // 绘制常规字体
 		else{
 			// 绘制emoji
-			bool r = drawEmojiBitmap(x, y, c);
+			bool r = drawEmojiBitmap(x, y, c, bc);
 			if(!r) drawGlyph(x, y, fc, bc, (u16)*text, *dw);
 			*dw = 1;
 		}
