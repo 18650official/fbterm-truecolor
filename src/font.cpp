@@ -24,6 +24,7 @@
 #include "font.h"
 #include "screen.h"
 #include "fbconfig.h"
+#include <stdio.h>
 
 #define OFFSET(TYPE, MEMBER) ((size_t)(&(((TYPE *)0)->MEMBER)))
 #define SUBS(a, b) ((a) > (b) ? (a) - (b) : (b) - (a))
