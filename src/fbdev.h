@@ -22,6 +22,10 @@
 #define FBDEV_H
 
 #include "screen.h"
+#include "emojicache.h"
+#include "font.h"
+
+class EmojiCache;
 
 class FbDev : public Screen {
 private:
@@ -34,6 +38,7 @@ private:
 	virtual void setupOffset();
 	virtual void setupPalette(bool restore);
 	virtual const s8 *drvId();
-	bool drawEmojiBitmap(u32 x, u32 y, u32 code, u8 bc) override;
+	bool drawEmojiBitmap(u32 x, u32 y, u32 code, u8 bc);
+	EmojiCache *m_emoji_cache;
 };
 #endif

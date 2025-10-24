@@ -444,14 +444,19 @@ void VTerm::input(const u8 *buf, u32 count)
 
 void VTerm::do_normal_char()
 {
-	// bool is_emoji = ((cur_char >= 0x1F300 && cur_char <= 0x1F9FF) ||
-    //                      (cur_char >= 0x2600 && cur_char <= 0x27BF));
+	bool is_emoji = ((cur_char >= 0x1F300 && cur_char <= 0x1F9FF) ||
+                         (cur_char >= 0x2600 && cur_char <= 0x27BF));
 
 	// if (cur_char > 0xffff && !is_emoji) cur_char = 0xfffd;
 	// Test: use new-pocketpy fontwidth library
-
-	s32 cw = charWidth(cur_char);
-	if(cur_char < 32) cw = 0;
+	s32 cw;
+	if(!is_emoji) {
+		if(cur_char < 32) cw = 0;
+		else cw = charWidth(cur_char);
+	}
+	else {
+		cw = 2;
+	}
 	if (cw <= 0) return;
 
 	bool dw = (cw == 2);

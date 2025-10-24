@@ -8,12 +8,12 @@
 /* #undef ENABLE_VESA */
 
 /* */
-#define HAVE_EPOLL 1
+/* #undef HAVE_EPOLL */
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define HAVE_FCNTL_H 1
 
-/* Define to 1 if you have the `getpagesize' function. */
+/* Define to 1 if you have the 'getpagesize' function. */
 #define HAVE_GETPAGESIZE 1
 
 /* Define to 1 if you have the <gpm.h> header file. */
@@ -25,7 +25,7 @@
 /* Define to 1 if you have the <langinfo.h> header file. */
 #define HAVE_LANGINFO_H 1
 
-/* Define to 1 if you have the `util' library (-lutil). */
+/* Define to 1 if you have the 'util' library (-lutil). */
 #define HAVE_LIBUTIL 1
 
 /* Define to 1 if you have the <libx86.h> header file. */
@@ -46,39 +46,36 @@
 /* Define to 1 if you have the <locale.h> header file. */
 #define HAVE_LOCALE_H 1
 
-/* Define to 1 if you have the `memmove' function. */
+/* Define to 1 if you have the 'memmove' function. */
 #define HAVE_MEMMOVE 1
 
-/* Define to 1 if you have the <memory.h> header file. */
-#define HAVE_MEMORY_H 1
-
-/* Define to 1 if you have the `memset' function. */
+/* Define to 1 if you have the 'memset' function. */
 #define HAVE_MEMSET 1
 
-/* Define to 1 if you have a working `mmap' system call. */
+/* Define to 1 if you have a working 'mmap' system call. */
 #define HAVE_MMAP 1
 
-/* Define to 1 if you have the `munmap' function. */
+/* Define to 1 if you have the 'munmap' function. */
 #define HAVE_MUNMAP 1
 
-/* Define to 1 if you have the `nl_langinfo' function. */
+/* Define to 1 if you have the 'nl_langinfo' function. */
 #define HAVE_NL_LANGINFO 1
 
-/* Define to 1 if you have the `setenv' function. */
+/* Define to 1 if you have the 'setenv' function. */
 #define HAVE_SETENV 1
 
-/* Define to 1 if you have the `setlocale' function. */
+/* Define to 1 if you have the 'setlocale' function. */
 #define HAVE_SETLOCALE 1
 
 /* */
-#define HAVE_SIGNALFD 1
+/* #undef HAVE_SIGNALFD */
 
-/* Define to 1 if you have the `socket' function. */
+/* Define to 1 if you have the 'socket' function. */
 #define HAVE_SOCKET 1
 
-/* Define to 1 if `stat' has the bug that it succeeds when given the
+/* Define to 1 if 'stat' has the bug that it succeeds when given the
    zero-length file name argument. */
-/* #undef HAVE_STAT_EMPTY_STRING_BUG */
+#define HAVE_STAT_EMPTY_STRING_BUG 1
 
 /* Define to 1 if stdbool.h conforms to C99. */
 #define HAVE_STDBOOL_H 1
@@ -89,13 +86,16 @@
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
 
+/* Define to 1 if you have the <stdio.h> header file. */
+#define HAVE_STDIO_H 1
+
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
 
-/* Define to 1 if you have the `strcasecmp' function. */
+/* Define to 1 if you have the 'strcasecmp' function. */
 #define HAVE_STRCASECMP 1
 
-/* Define to 1 if you have the `strchr' function. */
+/* Define to 1 if you have the 'strchr' function. */
 #define HAVE_STRCHR 1
 
 /* Define to 1 if you have the <strings.h> header file. */
@@ -104,10 +104,10 @@
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
 
-/* Define to 1 if you have the `strstr' function. */
+/* Define to 1 if you have the 'strstr' function. */
 #define HAVE_STRSTR 1
 
-/* Define to 1 if you have the `strtol' function. */
+/* Define to 1 if you have the 'strtol' function. */
 #define HAVE_STRTOL 1
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
@@ -137,12 +137,12 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
-/* Define to 1 if the system has the type `_Bool'. */
+/* Define to 1 if the system has the type '_Bool'. */
 #define HAVE__BOOL 1
 
-/* Define to 1 if `lstat' dereferences a symlink specified with a trailing
+/* Define to 1 if 'lstat' dereferences a symlink specified with a trailing
    slash. */
-#define LSTAT_FOLLOWS_SLASHED_SYMLINK 1
+/* #undef LSTAT_FOLLOWS_SLASHED_SYMLINK */
 
 /* Name of package */
 #define PACKAGE "fbterm"
@@ -165,17 +165,19 @@
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "1.7"
 
-/* Define as the return type of signal handlers (`int' or `void'). */
+/* Define as the return type of signal handlers ('int' or 'void'). */
 #define RETSIGTYPE void
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C89 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #define STDC_HEADERS 1
 
-/* Define to 1 if your <sys/time.h> declares `struct tm'. */
+/* Define to 1 if your <sys/time.h> declares 'struct tm'. */
 /* #undef TM_IN_SYS_TIME */
 
 /* Version number of package */
 #define VERSION "1.7"
 
-/* Define to empty if `const' does not conform to ANSI C. */
+/* Define to empty if 'const' does not conform to ANSI C. */
 /* #undef const */

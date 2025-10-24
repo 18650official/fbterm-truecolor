@@ -28,9 +28,12 @@
 #include <linux/fb.h>
 #include "fbdev.h"
 #include "font.h"
+#include "emojicache.h"
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
+// #define EMOJI_WIDTH_DBG
+#define EMOJI_CACHE_MAX_SIZE 400
 
 static fb_fix_screeninfo finfo;
 static fb_var_screeninfo vinfo;
@@ -115,12 +118,16 @@ FbDev::FbDev()
 			}
 		}
 	}
+	// Init emoji LRU buffer
+	m_emoji_cache = new EmojiCache(EMOJI_CACHE_MAX_SIZE, FW(2), FH(1));
 }
 
 FbDev::~FbDev()
 {
 	munmap(mVMemBase, finfo.smem_len);
 	close(fbdev_fd);
+
+	delete m_emoji_cache; // Free LRU cache 
 
 	if (mScrollType != Redraw) {
 		ioctl(STDIN_FILENO, KDSETMODE, KD_GRAPHICS);
@@ -210,44 +217,42 @@ void FbDev::setupPalette(bool restore)
 // This is the new, enhanced, and DYNAMIC version of drawEmojiBitmap.
 bool FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code, u8 bc)
 {
-    // 1. Construct the path to the bitmap file.
-    char bitmap_path[256];
-    sprintf(bitmap_path, "/usr/share/emoji/%X.rgb", code);
+    // 0. 获取 emoji 尺寸 (用于循环和调试)
+    const int EMOJI_SIZE = FH(1);
+    const int EMOJI_WIDTH = FW(2);
 
-    // 2. Open the bitmap file.
-    FILE* fp = fopen(bitmap_path, "rb");
-    if (!fp) {
+    #ifdef EMOJI_WIDTH_DBG
+    // 调试日志保持不变
+    FILE* log_fp = fopen("/root/fbterm_emoji.log", "a");
+    if (log_fp) {
+        fprintf(log_fp, "drawEmojiBitmap: code=0x%X, Height=%d, Width=%d\n",
+                code, EMOJI_SIZE, EMOJI_WIDTH);
+        fclose(log_fp);
+    }
+    #endif
+
+    // 1. 从缓存获取 Emoji 数据
+    //    这一步会处理所有的：
+    //    - 缓存命中 (快速)
+    //    - 缓存未命中 (自动从磁盘加载)
+    const unsigned char *pixel_ptr = m_emoji_cache->get(code);
+
+    // 2. 检查加载是否失败 (文件不存在或损坏)
+    if (!pixel_ptr) {
+        // 加载失败，回退到只绘制背景色
+        fillRect(x, y, EMOJI_WIDTH, EMOJI_SIZE, bc);
         return false;
     }
 
-    // ===================================================================
-    // ==                     --- DYNAMIC SIZE FIX ---                  ==
-    // ===================================================================
-    // Use the font's actual height as the emoji size.
-    // Assumes emojis are square and their size matches the font height.
-    const int EMOJI_SIZE = FH(1); // Get current font height
-    const int EMOJI_WIDTH = FW(2); // Emojis are double-width characters
-    // Dynamically allocate the buffer on the stack (or heap if size is large)
-    unsigned char emoji_buffer[EMOJI_SIZE * EMOJI_WIDTH * 3];
-    // ===================================================================
+    // 3. !! 关键修复：移除 fillRect(...) !!
+    //    我们不再用背景色清空矩形，因为这会导致闪烁。
+    //    我们假设背景已经在那里了，我们只绘制非黑色(透明)的像素。
+    //    (fillRect(x, y, FW(2), FH(1), bc);) <-- 这行已被删除
 
-    size_t bytes_to_read = sizeof(emoji_buffer);
-    size_t bytes_read = fread(emoji_buffer, 1, bytes_to_read, fp);
-    fclose(fp);
-
-    if (bytes_read != bytes_to_read) {
-        fillRect(x, y, FW(2), FH(1), bc);
-        return false; 
-    }
-
-    // 3. Pre-fill the area with the background color.
-    fillRect(x, y, FW(2), FH(1), bc);
-
-    // 4. Get framebuffer memory address.
+    // 4. 获取 framebuffer 内存地址
     unsigned short *vmem_start = (unsigned short *)mVMemBase;
-    unsigned char *pixel_ptr = emoji_buffer;
 
-    // 5. Loop through each pixel and draw non-black pixels.
+    // 5. 循环遍历像素并绘制 (与之前相同，但数据源是 pixel_ptr)
     for (int row = 0; row < EMOJI_SIZE; row++) {
         if ((y + row) >= mHeight) break;
 
@@ -256,10 +261,12 @@ bool FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code, u8 bc)
         for (int col = 0; col < EMOJI_WIDTH; col++) {
             if ((x + col) >= mWidth) break;
 
+            // 从缓存指针中读取数据
             unsigned char r = *pixel_ptr++;
             unsigned char g = *pixel_ptr++;
             unsigned char b = *pixel_ptr++;
             
+            // (0,0,0) 被视为空白/透明像素，我们跳过它
             if (r != 0 || g != 0 || b != 0) {
                 unsigned short color16 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
                 *(dest + col) = color16;
