@@ -336,8 +336,8 @@ bool VTerm::init_ambiguous_wide()
 {
 	bool val = false;
 	Config::instance()->getOption("ambiguous-wide", val);
-	// return val;
-	return true;
+	return val;
+	// return true;
 }
 
 void Shell::initWordChars(s8 *buf, u32 len)
