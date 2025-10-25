@@ -244,10 +244,7 @@ bool FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code, u8 bc)
         return false;
     }
 
-    // 3. !! 关键修复：移除 fillRect(...) !!
-    //    我们不再用背景色清空矩形，因为这会导致闪烁。
-    //    我们假设背景已经在那里了，我们只绘制非黑色(透明)的像素。
-    //    (fillRect(x, y, FW(2), FH(1), bc);) <-- 这行已被删除
+    fillRect(x, y, FW(2), FH(1), bc);
 
     // 4. 获取 framebuffer 内存地址
     unsigned short *vmem_start = (unsigned short *)mVMemBase;
