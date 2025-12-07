@@ -43,7 +43,7 @@ static u32 *fontFlags;
 static Font::Glyph **glyphCache;
 static bool *glyphCacheInited;
 
-static void openFont(u32 index);
+// static void openFont(u32 index);
 
 DEFINE_INSTANCE(Font)
 
@@ -311,9 +311,19 @@ void Font::openFont(u32 index)
 
     // 2. 决策逻辑
     if (FT_IS_SCALABLE(face)) {
-        // [TTF 矢量字体] -> 直接请求目标大小，不缩放
-        request_size = target_size;
+        u32 safety_padding = 2; 
+
+        if (target_size > safety_padding) {
+            // 动态减小：如果是 16 就申请 14；如果是 24 就申请 22
+            request_size = target_size - safety_padding;
+        } else {
+            // 极小字号保护
+            request_size = target_size;
+        }
+
+        // 依然保持 1:1 的比例，不进行图像缩放
         ratio = 1.0f;
+        
     } else {
         // [OTB/BDF 点阵字体] -> 智能寻找最佳尺寸
         
