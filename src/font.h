@@ -47,6 +47,9 @@ public:
 
 private:
 	u32 mWidth, mHeight;
+	u32 mOriginOtbSize;
+	u32 mTargetSize;
+	bool mOtbEnabled;
 };
 
 #endif

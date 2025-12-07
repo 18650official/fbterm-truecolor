@@ -29,6 +29,7 @@
 #include "fbconfig.h"
 
 #define MAX_CONFIG_FILE_SIZE 10240
+#define OTB_EXTRA_ENABLE
 
 DEFINE_INSTANCE_DEFAULT(Config)
 
@@ -227,6 +228,10 @@ bool Config::parseArgs(s32 argc, s8 **argv)
 		{ "verbose", no_argument, 0, 'v' },
 		{ "font-names", required_argument, 0, 'n' },
 		{ "font-size", required_argument, 0, 's' },
+#ifdef OTB_EXTRA_ENABLE
+		{ "otb-source-size", required_argument, 0, 's' }, //OTB Font actual size
+		{ "otb-support", no_argument, 0, 'a' },
+#endif
 		{ "color-foreground", required_argument, 0, 'f' },
 		{ "color-background", required_argument, 0, 'b' },
 		{ "text-encodings", required_argument, 0, 'e' },

@@ -36,6 +36,9 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define redraw(args...) (FbShellManager::instance()->redraw(args))
 
+// Debug Log define
+#define GLYPH_SIZE_DEBUG
+
 static const s8 show_cursor[] = "\e[?25h";
 static const s8 hide_cursor[] = "\e[?25l";
 static const s8 disable_blank[] = "\e[9;0]";
@@ -416,11 +419,39 @@ void Screen::drawGlyph(u32 x, u32 y, u8 fc, u8 bc, u16 code, bool dw)
 	if (x + w > mWidth) w = mWidth - x;
 	if (y + h > mHeight) h = mHeight - y;
 
-	Font::Glyph *glyph = (Font::Glyph *)Font::instance()->getGlyph(code);
+	Font::Glyph *glyph = (Font::Glyph *)Font::instance()->getGlyph(code); //Get bitmap data
+
 	if (!glyph) {
 		fillRect(x, y, w, h, bc);
 		return;
 	}
+
+	// ================= [DEBUG START] =================
+    // 静态变量，保证只打开一次文件，提高性能
+	
+	#ifdef GLYPH_SIZE_DEBUG
+
+		static FILE *debug_fp = NULL;
+		if (!debug_fp) {
+			debug_fp = fopen("/oem/.fbterm.log", "a"); // 使用追加模式
+			if (debug_fp) {
+				fprintf(debug_fp, "--- FbTerm Glyph Debug Start ---\n");
+			}
+		}
+
+		if (debug_fp) {
+			// 打印：容器大小(Grid) vs 内容大小(Glyph) vs 偏移量(Offset)
+			fprintf(debug_fp, "Char: U+%04X | Grid: %dx%d | Glyph: %dx%d | Offset: left=%d, top=%d\n", 
+					code,
+					dw ? FW(2) : FW(1), FH(1),   // 容器大小
+					glyph->width, glyph->height, // 内容大小
+					glyph->left, glyph->top);    // 偏移量
+			fflush(debug_fp);
+		}
+
+	#endif
+
+    // ================= [DEBUG END] ===================
 
 	s32 top = glyph->top;
 	if (top < 0) top = 0;

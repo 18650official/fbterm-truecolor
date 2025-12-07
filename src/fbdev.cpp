@@ -32,7 +32,7 @@
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
-// #define EMOJI_WIDTH_DBG
+// #define EMOJI_WIDTH_DEBUG
 #define EMOJI_CACHE_MAX_SIZE 400
 
 static fb_fix_screeninfo finfo;
@@ -221,9 +221,9 @@ bool FbDev::drawEmojiBitmap(u32 x, u32 y, u32 code, u8 bc)
     const int EMOJI_SIZE = FH(1);
     const int EMOJI_WIDTH = FW(2);
 
-    #ifdef EMOJI_WIDTH_DBG
+    #ifdef EMOJI_WIDTH_DEBUG
     // 调试日志保持不变
-    FILE* log_fp = fopen("/root/fbterm_emoji.log", "a");
+    FILE* log_fp = fopen("/oem/fbterm_emoji.log", "a");
     if (log_fp) {
         fprintf(log_fp, "drawEmojiBitmap: code=0x%X, Height=%d, Width=%d\n",
                 code, EMOJI_SIZE, EMOJI_WIDTH);
