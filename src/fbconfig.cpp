@@ -29,7 +29,7 @@
 #include "fbconfig.h"
 
 #define MAX_CONFIG_FILE_SIZE 10240
-#define OTB_EXTRA_ENABLE
+// #define OTB_EXTRA_ENABLE
 
 DEFINE_INSTANCE_DEFAULT(Config)
 

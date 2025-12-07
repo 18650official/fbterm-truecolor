@@ -49,82 +49,84 @@ DEFINE_INSTANCE(Font)
 
 Font *Font::createInstance()
 {
-	FcInit();
+    FcInit();
 
-	s8 buf[64];
-	Config::instance()->getOption("font-names", buf, sizeof(buf));
+    s8 buf[64];
+    Config::instance()->getOption("font-names", buf, sizeof(buf));
 
-	FcPattern *pat = FcNameParse((FcChar8 *)(*buf ? buf : "mono"));
+    // 如果未配置字体名，默认寻找 "mono"
+    FcPattern *pat = FcNameParse((FcChar8 *)(*buf ? buf : "mono"));
 
-	u32 pixel_size = 12;
-	bool isEnableOTBSupport = false;
-	Config::instance()->getOption("otb-support", isEnableOTBSupport);
-	if(isEnableOTBSupport)
-		Config::instance()->getOption("otb-source-size", pixel_size); //读取OTB大小进行传参
-	else
-		Config::instance()->getOption("font-size", pixel_size);
-	
+    // ================= [修改重点 Start] =================
+    // 只关注目标字号，不再根据 OTB 开关做特殊处理
+    // ==================================================
+    u32 pixel_size = 12; // 默认值
+    Config::instance()->getOption("font-size", pixel_size);
+
 #ifdef OTB_STATUS_DEBUG
-	// [DEBUG LOG START]
+    // [DEBUG LOG] 简化后的日志
     FILE *fp_open = fopen("/oem/.fbterm_otb.log", "a");
     if (fp_open) {
-        fprintf(fp_open, "[Font::openFont] Setting up FreeType:\n");
-        fprintf(fp_open, "  -> isEnableOTBSupport: %d\n", isEnableOTBSupport);
-        fprintf(fp_open, "  -> Final pixel_size passed to FT: %d\n", pixel_size);
+        fprintf(fp_open, "[Font::createInstance] FontConfig Init:\n");
+        fprintf(fp_open, "  -> Requested Font Names: %s\n", buf);
+        fprintf(fp_open, "  -> Requested Pixel Size: %d\n", pixel_size);
         fprintf(fp_open, "--------------------------------\n");
         fclose(fp_open);
     }
 #endif
+    // ================= [修改重点 End] ====================
 
-    // [DEBUG LOG END]
+    // 将目标字号告诉 FontConfig
+    FcPatternAddDouble(pat, FC_PIXEL_SIZE, (double)pixel_size);
 
-	FcPatternAddDouble(pat, FC_PIXEL_SIZE, (double)pixel_size);
+    FcPatternAddString(pat, FC_LANG, (FcChar8 *)"en");
 
-	FcPatternAddString(pat, FC_LANG, (FcChar8 *)"en");
+    FcConfigSubstitute(NULL, pat, FcMatchPattern);
+    FcDefaultSubstitute(pat);
 
-	FcConfigSubstitute(NULL, pat, FcMatchPattern);
-	FcDefaultSubstitute(pat);
+    FcResult result;
+    // 获取匹配到的字体列表
+    FcFontSet *fs = FcFontSort(NULL, pat, FcTrue, &unicodeMap, &result);
 
-	FcResult result;
-	FcFontSet *fs = FcFontSort(NULL, pat, FcTrue, &unicodeMap, &result);
+    if (fs) {
+        fontList = FcFontSetCreate();
 
-	if (fs) {
-		fontList = FcFontSetCreate();
+        FcObjectSet *family = FcObjectSetCreate();
+        FcObjectSetAdd(family, FC_FAMILY);
 
-		FcObjectSet *family = FcObjectSetCreate();
-		FcObjectSetAdd(family, FC_FAMILY);
+        for (u32 i = 0; i < fs->nfont; i++) {
+            FcPattern *font = FcFontRenderPrepare(NULL, pat, fs->fonts[i]);
+            if (!font) continue;
 
-		for (u32 i = 0; i < fs->nfont; i++) {
-			FcPattern *font = FcFontRenderPrepare(NULL, pat, fs->fonts[i]);
-			if (!font) continue;
+            // 去重逻辑：如果同名字体已经有了，就不重复添加
+            bool same = false;
+            for (u32 j = 0; j < fontList->nfont; j++) {
+                if (FcPatternEqualSubset(fontList->fonts[j], font, family)) {
+                    same = true;
+                    break;
+                }
+            }
 
-			bool same = false;
-			for (u32 j = 0; j < fontList->nfont; j++) {
-				if (FcPatternEqualSubset(fontList->fonts[j], font, family)) {
-					same = true;
-					break;
-				}
-			}
+            if (same) {
+                FcPatternDestroy(font);
+            } else {
+                FcFontSetAdd(fontList, font);
+            }
+        }
 
-			if (same) {
-				FcPatternDestroy(font);
-			} else {
-				FcFontSetAdd(fontList, font);
-			}
-		}
+        FcObjectSetDestroy(family);
+    }
 
-		FcObjectSetDestroy(family);
-	}
+    FcPatternDestroy(pat);
+    if (fs) FcFontSetDestroy(fs);
 
-	FcPatternDestroy(pat);
-	if (fs) FcFontSetDestroy(fs);
+    // 如果找到了字体，创建 Font 实例 (会调用我们刚改过的 Font::Font 构造函数)
+    if (fontList && fontList->nfont) return new Font();
 
-	if (fontList && fontList->nfont) return new Font();
-
-	if (unicodeMap) FcCharSetDestroy(unicodeMap);
-	if (fontList) FcFontSetDestroy(fontList);
-	FcFini();
-	return 0;
+    if (unicodeMap) FcCharSetDestroy(unicodeMap);
+    if (fontList) FcFontSetDestroy(fontList);
+    FcFini();
+    return 0;
 }
 
 Font::Font()
@@ -132,30 +134,22 @@ Font::Font()
     mHeight = mWidth = 0;
     
     // =======================================================
-    // 1. 第一步：先初始化成员并读取所有配置
-    //    必须在 openFont 之前做，否则 openFont 拿不到参数
+    // 1. 第一步：读取基础字体大小配置
+    //    不再读取 otb-support 或 source-size，全部交给 openFont 智能判断
     // =======================================================
-    mOtbEnabled = false;
-    mOriginOtbSize = 0;
-    mTargetSize = 12; // 给个默认防崩
+    mTargetSize = 12; // 默认兜底大小
 
-    Config::instance()->getOption("otb-support", mOtbEnabled);
-    if (mOtbEnabled) {
-        Config::instance()->getOption("font-size", mTargetSize);
-        Config::instance()->getOption("otb-source-size", mOriginOtbSize);
-    } else {
-        Config::instance()->getOption("font-size", mTargetSize);
-        mOriginOtbSize = mTargetSize;
-    }
+    // 读取用户配置的字号 (例如 16)
+    // 这个 mTargetSize 将成为所有字体缩放的“标准基准”
+    Config::instance()->getOption("font-size", mTargetSize);
 
     // [DEBUG LOG]
 #ifdef OTB_STATUS_DEBUG
     FILE *fp_ctor = fopen("/oem/.fbterm_otb.log", "a");
     if (fp_ctor) {
         fprintf(fp_ctor, "[Font::Font] Constructor Init:\n");
-        fprintf(fp_ctor, "  -> OTB Enabled: %s\n", mOtbEnabled ? "TRUE" : "FALSE");
-        fprintf(fp_ctor, "  -> Target Size: %d\n", mTargetSize);
-        fprintf(fp_ctor, "  -> Origin OTB Size: %d\n", mOriginOtbSize);
+        fprintf(fp_ctor, "  -> Target Size (Grid Base): %d\n", mTargetSize);
+        fprintf(fp_ctor, "  -> Auto-Scaling Mode: ON (Config Independent)\n");
         fclose(fp_ctor);
     }
 #endif
@@ -164,7 +158,13 @@ Font::Font()
     // 2. 第二步：初始化 FreeType 并加载字体
     // =======================================================
     fontFaces = new FT_Face[fontList->nfont];
+    fontScaleRatios = new float[fontList->nfont]; // 必须分配缩放比例数组
     fontFlags = new u32[fontList->nfont];
+
+    // 初始化比例为 1.0 (不缩放)
+    for (u32 i = 0; i < fontList->nfont; i++) 
+        fontScaleRatios[i] = 1.0f;
+
     memset(fontFaces, 0, sizeof(FT_Face) * fontList->nfont);
 
     glyphCache = new Glyph *[256 * 256];
@@ -173,7 +173,9 @@ Font::Font()
 
     FT_Init_FreeType(&ftlib);
     
-    // 此时调用 openFont，它内部会使用上面读到的 mOriginOtbSize
+    // 调用 openFont
+    // 此时 openFont 会利用 this->mTargetSize 去智能匹配字体大小
+    // 如果是 64px OTB，它会自动计算出 0.25 的缩放比存入 fontScaleRatios
     openFont(0);
 
     FT_Face face = fontFaces[0];
@@ -181,51 +183,21 @@ Font::Font()
 
     // =======================================================
     // 3. 第三步：计算基础格子大小 (mWidth, mHeight)
+    //    核心修改：强制使用 TargetSize 作为格子高度
     // =======================================================
     
-    // --- 分支 A: OTB 开启模式 ---
-    // 如果开启了 OTB，我们不需要关心 FreeType 返回的巨大尺寸 (64px)
-    // 我们直接强制把格子设定为目标大小 (16px)
-    if (mOtbEnabled) {
-        mHeight = mTargetSize;
-        
-        // 通常终端字体宽度是高度的一半 (等宽)
-        // 如果想更精确，可以按照缩放比例去算： (FaceWidth * Target) / Origin
-        // 但简单除以 2 通常对中文显示最稳
-        mWidth = (mHeight + 1) / 2; 
-    } 
-    // --- 分支 B: 普通模式 (保留原有复杂逻辑) ---
-    else {
-        if (face->face_flags & FT_FACE_FLAG_SCALABLE) {
-            mHeight = face->size->metrics.height >> 6;
-            mWidth = face->size->metrics.max_advance >> 6;
-        } else if (face->num_fixed_sizes) {
-            double dsize;
-            FcPatternGetDouble(fontList->fonts[0], FC_PIXEL_SIZE, 0, &dsize);
-
-            FT_Bitmap_Size *sizes = face->available_sizes;
-            u32 index = 0, diffmin = (u32)-1;
-            for (u32 i = 0; i < face->num_fixed_sizes; i++) {
-                u32 diff = SUBS(sizes[i].size >> 6, (u32)dsize);
-                if (diff < diffmin ) {
-                    index = i;
-                    diffmin = diff;
-                }
-            }
-
-            mHeight = sizes[index].height;
-            mWidth = sizes[index].width;
-        }
-
-        // 限制宽度不超过高度的一半 (强制半角)
-        if (!(face->face_flags & FT_FACE_FLAG_FIXED_WIDTH)) {
-            mWidth = MIN(mWidth, (mHeight + 1) / 2);
-        }
-    }
+    // 无论 FreeType 加载的是 64px 的原图还是 16px 的矢量，
+    // 我们最终要在屏幕上画的格子高度就是 mTargetSize (比如 16)。
+    // 这样避免了加载大尺寸 OTB 时，格子被意外撑大的问题。
+    mHeight = mTargetSize;
+    
+    // 计算宽度：通常终端字体宽度是高度的一半 (Standard Half-width)
+    // 这对中英文混排最稳，避免了去读取 FreeType 可能返回的奇怪宽度
+    mWidth = (mHeight + 1) / 2;
 
     // =======================================================
     // 4. 第四步：应用用户微调配置 (font-width/height)
-    //    这部分逻辑现在会作用于已经被我们修正过的 mWidth/mHeight 上
+    //    允许用户在 .fbtermrc 里微调格子大小
     // =======================================================
     u32 width_opt = 0;
     Config::instance()->getOption("font-width", width_opt);
@@ -248,8 +220,8 @@ Font::Font()
         if (buf[0] == '+' || buf[0] == '-') mHeight += (s32)height_opt;
         else mHeight = height_opt;
     }
+
 #ifdef OTB_STATUS_DEBUG
-    // [DEBUG LOG 2] 确认最终使用的格子大小
     if (fp_ctor = fopen("/oem/.fbterm_otb.log", "a")) {
         fprintf(fp_ctor, "  -> Final Grid Size: W=%d, H=%d\n", mWidth, mHeight);
         fclose(fp_ctor);
@@ -271,6 +243,9 @@ Font::~Font()
 
 	delete[] glyphCache;
 	delete[] glyphCacheInited;
+
+	if (fontScaleRatios) 
+		delete[] fontScaleRatios;
 
 	for (u32 i = 0; i < fontList->nfont; i++) {
 		if (fontFaces[i] && fontFaces[i] != (FT_Face)-1) {
@@ -304,53 +279,116 @@ void Font::showInfo(bool verbose)
 	printf("%s\n", family);
 }
 
-static void openFont(u32 index)
+void Font::openFont(u32 index)
 {
-	if (index >= fontList->nfont) return;
+    if (index >= fontList->nfont) return;
 
-	FcPattern *pattern = fontList->fonts[index];
+    FcPattern *pattern = fontList->fonts[index];
+    FcChar8 *name = (FcChar8 *)"";
+    FcPatternGetString(pattern, FC_FILE, 0, &name);
 
-	FcChar8 *name = (FcChar8 *)"";
-	FcPatternGetString(pattern, FC_FILE, 0, &name);
+    int id = 0;
+    FcPatternGetInteger (pattern, FC_INDEX, 0, &id);
 
-	int id = 0;
-	FcPatternGetInteger (pattern, FC_INDEX, 0, &id);
+    FT_Face face;
+    if (FT_New_Face(ftlib, (const char *)name, id, &face)) {
+        fontFaces[index] = (FT_Face)-1;
+        return;
+    }
 
-	FT_Face face;
-	if (FT_New_Face(ftlib, (const char *)name, id, &face)) {
-		fontFaces[index] = (FT_Face)-1;
-		return;
-	}
+    // ================= [全自动智能逻辑 Start] =================
 
-	double ysize;
-	FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &ysize);
-	FT_Set_Pixel_Sizes(face, 0, (FT_UInt)ysize);
+    // 1. 确定目标大小 (这是我们最终想要显示的大小，如 16)
+    // 优先用全局配置的 target size，如果没有则用 fontconfig 的建议值
+    u32 target_size = (mTargetSize > 0) ? mTargetSize : 16;
+    double fc_size;
+    if (FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &fc_size) == FcResultMatch) {
+        if (mTargetSize == 0) target_size = (u32)fc_size;
+    }
 
-	int load_flags = FT_LOAD_DEFAULT;
+    u32 request_size = target_size; // 最终向 FreeType 请求的大小
+    float ratio = 1.0f;             // 最终的缩放比例
 
-	FcBool scalable, antialias;
-	FcPatternGetBool(pattern, FC_SCALABLE, 0, &scalable);
-	FcPatternGetBool(pattern, FC_ANTIALIAS, 0, &antialias);
+    // 2. 决策逻辑
+    if (FT_IS_SCALABLE(face)) {
+        // [TTF 矢量字体] -> 直接请求目标大小，不缩放
+        request_size = target_size;
+        ratio = 1.0f;
+    } else {
+        // [OTB/BDF 点阵字体] -> 智能寻找最佳尺寸
+        
+        bool found_exact = false;
+        int max_size = 0;
 
-	if (scalable && antialias) load_flags |= FT_LOAD_NO_BITMAP;
+        // 遍历所有可用尺寸
+        if (face->num_fixed_sizes > 0) {
+            for (int i = 0; i < face->num_fixed_sizes; i++) {
+                int h = face->available_sizes[i].height;
+                
+                // 记录见过的最大尺寸 (作为保底)
+                if (h > max_size) max_size = h;
 
-	if (antialias) {
-		FcBool hinting;
-		int hint_style;
-		FcPatternGetBool(pattern, FC_HINTING, 0, &hinting);
-		FcPatternGetInteger(pattern, FC_HINT_STYLE, 0, &hint_style);
+                // 检查是否有完美匹配 (Exact Match)
+                // 容差设为 0，必须严格相等
+                if (h == (int)target_size) {
+                    found_exact = true;
+                    // 如果找到了原生 16px，不用找了，直接用
+                    request_size = h;
+                    ratio = 1.0f;
+                    break; 
+                }
+            }
+        }
 
-		if (!hinting || hint_style == FC_HINT_NONE) {
-			load_flags |= FT_LOAD_NO_HINTING;
-		} else {
-			load_flags |= FT_LOAD_TARGET_LIGHT;
-		}
-	} else {
-		load_flags |= FT_LOAD_TARGET_MONO;
-	}
+        if (!found_exact) {
+            // [没有原生尺寸] -> 启用缩放策略
+            if (max_size > 0) {
+                // 找到了一个最大的 (比如 64px)，用它来做超采样
+                request_size = max_size;
+                ratio = (float)target_size / (float)max_size;
+            } else {
+                // 极罕见情况：点阵字体没有任何尺寸信息，只能死马当活马医
+                request_size = target_size;
+                ratio = 1.0f;
+            }
+        }
+    }
 
-	fontFaces[index] = face;
-	fontFlags[index] = load_flags;
+    // 3. 应用设置
+    FT_Set_Pixel_Sizes(face, 0, request_size);
+    
+    // 4. 保存缩放比例供 getGlyph 使用
+    if (fontScaleRatios) {
+        fontScaleRatios[index] = ratio;
+    }
+    
+    // ================= [全自动智能逻辑 End] =================
+
+    int load_flags = FT_LOAD_DEFAULT;
+
+    FcBool scalable, antialias;
+    FcPatternGetBool(pattern, FC_SCALABLE, 0, &scalable);
+    FcPatternGetBool(pattern, FC_ANTIALIAS, 0, &antialias);
+
+    if (scalable && antialias) load_flags |= FT_LOAD_NO_BITMAP;
+
+    if (antialias) {
+        FcBool hinting;
+        int hint_style;
+        FcPatternGetBool(pattern, FC_HINTING, 0, &hinting);
+        FcPatternGetInteger(pattern, FC_HINT_STYLE, 0, &hint_style);
+
+        if (!hinting || hint_style == FC_HINT_NONE) {
+            load_flags |= FT_LOAD_NO_HINTING;
+        } else {
+            load_flags |= FT_LOAD_TARGET_LIGHT;
+        }
+    } else {
+        load_flags |= FT_LOAD_TARGET_MONO;
+    }
+
+    fontFaces[index] = face;
+    fontFlags[index] = load_flags;
 }
 
 static int fontIndex(u32 unicode)
@@ -398,22 +436,12 @@ static u8 get_pixel_bilinear(const u8* src, int sw, int sh, float x, float y) {
     return (u8)val;
 }
 
-// --- 主函数 ---
 Font::Glyph *Font::getGlyph(u32 unicode)
 {
-    if (unicode >= 256 * 256) return 0;
+    // ... (前置缓存检查代码保持不变) ...
 
-    // 1. 缓存检查 (保持原样)
-    if (!glyphCacheInited[unicode >> 8]) {
-        glyphCacheInited[unicode >> 8] = true;
-        memset(&glyphCache[unicode & 0xff00], 0, sizeof(Glyph *) * 256);
-    }
-    if (glyphCache[unicode]) return glyphCache[unicode];
-
-    // 2. 加载字体 (保持原样)
     int i = fontIndex(unicode);
     if (i == -1) return 0;
-
     if (!fontFaces[i]) openFont(i);
     if (fontFaces[i] == (FT_Face)-1) return 0;
 
@@ -421,133 +449,104 @@ Font::Glyph *Font::getGlyph(u32 unicode)
     FT_UInt index = FT_Get_Char_Index(face, (FT_ULong)unicode);
     if (!index) return 0;
 
-    // 加载字形，得到原始的大尺寸 OTB 位图
     FT_Load_Glyph(face, index, FT_LOAD_RENDER | fontFlags[i]);
     FT_Bitmap &bitmap = face->glyph->bitmap;
 
-    // 3. 准备变量
+    // === 读取缩放比例 ===
+    float ratio = fontScaleRatios[i];
+    bool need_scale = (ratio < 0.99f || ratio > 1.01f); // 浮点数防抖
+
+    // 准备原始数据
     u32 src_w = bitmap.width;
     u32 src_h = bitmap.rows;
     u32 final_w = src_w;
     u32 final_h = src_h;
-    u8* scaled_buffer = NULL;     // 用于存放缩放后的数据
-    bool is_scaled = false;       // 标记是否进行了缩放
-    float scale_ratio = 1.0f;     // 缩放比例
 
-    // 4. OTB 缩放逻辑 (核心修改)
-    if (mOtbEnabled && mOriginOtbSize > 0 && mTargetSize > 0 && src_w > 0 && src_h > 0) {
-        
-        scale_ratio = (float)mTargetSize / (float)mOriginOtbSize;
-        
-        // 计算目标尺寸
-        final_w = (u32)(src_w * scale_ratio);
-        final_h = (u32)(src_h * scale_ratio);
-        
-        // 防止尺寸变为 0
+    // 如果需要缩放，计算目标尺寸
+    if (need_scale) {
+        final_w = (u32)(src_w * ratio);
+        final_h = (u32)(src_h * ratio);
         if (final_w == 0) final_w = 1;
         if (final_h == 0) final_h = 1;
+    }
 
-        // A. 解包：将 1-bit 位图转为 8-bit 临时 buffer
+    // --- 构建 fbterm Glyph ---
+    u32 x = 0, y = 0, nw = final_w, nh = final_h;
+    Screen::instance()->rotateRect(x, y, nw, nh);
+
+    Glyph *glyph = (Glyph *)new u8[OFFSET(Glyph, pixmap) + nw * nh];
+
+    // --- 填充 Metrics (关键排版数据) ---
+    if (need_scale) {
+        // [缩放模式] 所有排版指标乘以比例
+        glyph->left   = (s32)((face->glyph->metrics.horiBearingX >> 6) * ratio);
+        glyph->width  = (u8)final_w;
+        glyph->height = (u8)final_h;
+        
+        s32 scaled_descender = (s32)((face->size->metrics.descender >> 6) * ratio);
+        s32 scaled_bearingY  = (s32)((face->glyph->metrics.horiBearingY >> 6) * ratio);
+        glyph->top = mHeight - 1 + scaled_descender - scaled_bearingY;
+    } else {
+        // [原生模式] 直接读取 FreeType
+        glyph->left   = face->glyph->metrics.horiBearingX >> 6;
+        glyph->width  = face->glyph->metrics.width >> 6;
+        glyph->height = face->glyph->metrics.height >> 6;
+        glyph->top    = mHeight - 1 + (face->size->metrics.descender >> 6) - (face->glyph->metrics.horiBearingY >> 6);
+    }
+    glyph->pitch = nw;
+
+    // --- 填充像素数据 ---
+    u8 *dst_ptr = glyph->pixmap;
+
+    if (need_scale) {
+        // [缩放渲染]：解包 -> 双线性插值 -> 写入
+        
+        // 1. 临时解包源数据 (处理 MONO 格式)
         u8* temp_src = new u8[src_w * src_h];
         u8* src_ptr = bitmap.buffer;
-        
         for (u32 r = 0; r < src_h; r++) {
             for (u32 c = 0; c < src_w; c++) {
-                u8 val = 0;
+                u8 val;
                 if (bitmap.pixel_mode == FT_PIXEL_MODE_MONO) {
-                    // 读取位图中的某一位：字节索引 + 位偏移
                     val = (src_ptr[c >> 3] & (0x80 >> (c & 7))) ? 0xFF : 0x00;
                 } else {
-                    // 如果本身就是灰度图(虽少见但兼容)
-                    val = src_ptr[c]; 
+                    val = src_ptr[c];
                 }
                 temp_src[r * src_w + c] = val;
             }
             src_ptr += bitmap.pitch;
         }
 
-        // B. 缩放：执行双线性插值
-        scaled_buffer = new u8[final_w * final_h];
-        is_scaled = true;
-
-        for (u32 y = 0; y < final_h; y++) {
-            for (u32 x = 0; x < final_w; x++) {
-                // 坐标逆映射：目标图中心对齐源图中心
-                float src_x = (x + 0.5f) / scale_ratio - 0.5f;
-                float src_y = (y + 0.5f) / scale_ratio - 0.5f;
+        // 2. 双线性插值并写入最终 buffer
+        for (u32 r = 0; r < final_h; r++) {
+            for (u32 c = 0; c < final_w; c++) {
+                float src_x = (c + 0.5f) / ratio - 0.5f;
+                float src_y = (r + 0.5f) / ratio - 0.5f;
                 
-                scaled_buffer[y * final_w + x] = get_pixel_bilinear(temp_src, src_w, src_h, src_x, src_y);
+                u8 val = get_pixel_bilinear(temp_src, src_w, src_h, src_x, src_y);
+                
+                u32 rx = c, ry = r;
+                Screen::instance()->rotatePoint(final_w, final_h, rx, ry);
+                dst_ptr[ry * nw + rx] = val;
             }
         }
+        delete[] temp_src;
 
-        delete[] temp_src; // 释放临时解包数据
-    }
-
-    // 5. 构建 fbterm Glyph 对象
-    u32 x, y, nx, ny, nw, nh;
-    x = y = 0;
-    nw = final_w;
-    nh = final_h;
-    Screen::instance()->rotateRect(x, y, nw, nh); // 处理屏幕旋转
-
-    Glyph *glyph = (Glyph *)new u8[OFFSET(Glyph, pixmap) + nw * nh];
-
-    // 6. 填充 Metrics (排版指标)
-    if (is_scaled) {
-        // 【关键】对 FreeType 返回的指标进行等比例缩小
-        // 注意：FreeType 的 metrics 单位通常是 26.6 固定点数 (即像素值 * 64)
-        // 我们先右移 6 位得到整数像素值，再乘以缩放比例
-        
-        glyph->left   = (s32)((face->glyph->metrics.horiBearingX >> 6) * scale_ratio);
-        glyph->width  = (u8)final_w;
-        glyph->height = (u8)final_h;
-        
-        // Top 值的计算最为复杂，涉及到基线对齐。
-        // 原始公式：mHeight - 1 + (descender) - (horiBearingY)
-        // descender 和 bearingY 都需要缩放。
-        s32 scaled_descender = (s32)((face->size->metrics.descender >> 6) * scale_ratio);
-        s32 scaled_bearingY  = (s32)((face->glyph->metrics.horiBearingY >> 6) * scale_ratio);
-        
-        // mHeight 是 fbterm 这一行的总高度 (即 mTargetSize)
-        // 这里假设 Font 构造函数里 mHeight 已经被正确设为 mTargetSize
-        glyph->top = mHeight - 1 + scaled_descender - scaled_bearingY;
-        
     } else {
-        // 原有逻辑：直接使用 FreeType 数据
-        glyph->left   = face->glyph->metrics.horiBearingX >> 6;
-        glyph->top    = mHeight - 1 + (face->size->metrics.descender >> 6) - (face->glyph->metrics.horiBearingY >> 6);
-        glyph->width  = face->glyph->metrics.width >> 6;
-        glyph->height = face->glyph->metrics.height >> 6;
-    }
-    glyph->pitch = nw;
+        // [原生渲染]：直接拷贝 (带旋转处理)
+        u8 *src_ptr = bitmap.buffer;
+        for (u32 r = 0; r < src_h; r++, src_ptr += bitmap.pitch) {
+            for (u32 c = 0; c < src_w; c++) {
+                u32 rx = c, ry = r;
+                Screen::instance()->rotatePoint(src_w, src_h, rx, ry);
 
-    // 7. 填充像素数据 (PixMap)
-    if (is_scaled && scaled_buffer) {
-        // 使用缩放后的 8-bit 数据
-        u8 *buf = scaled_buffer;
-        for (y = 0; y < final_h; y++) {
-            for (x = 0; x < final_w; x++) {
-                nx = x, ny = y;
-                Screen::instance()->rotatePoint(final_w, final_h, nx, ny);
-                glyph->pixmap[ny * nw + nx] = buf[y * final_w + x];
-            }
-        }
-        delete[] scaled_buffer; // 记得释放！
-    } else {
-        // 原有逻辑：直接读取 bitmap.buffer 并处理单色位图
-        u8 *buf = bitmap.buffer;
-        for (y = 0; y < src_h; y++, buf += bitmap.pitch) {
-            for (x = 0; x < src_w; x++) {
-                nx = x, ny = y;
-                Screen::instance()->rotatePoint(src_w, src_h, nx, ny);
-
-                u8 val = 0;
+                u8 val;
                 if (bitmap.pixel_mode == FT_PIXEL_MODE_MONO) {
-                    val = (buf[(x >> 3)] & (0x80 >> (x & 7))) ? 0xff : 0;
+                    val = (src_ptr[(c >> 3)] & (0x80 >> (c & 7))) ? 0xff : 0;
                 } else {
-                    val = buf[x];
+                    val = src_ptr[c];
                 }
-                glyph->pixmap[ny * nw + nx] = val;
+                dst_ptr[ry * nw + rx] = val;
             }
         }
     }
@@ -555,57 +554,3 @@ Font::Glyph *Font::getGlyph(u32 unicode)
     glyphCache[unicode] = glyph;
     return glyph;
 }
-
-// Font::Glyph *Font::getGlyph(u32 unicode)
-// {
-// 	if (unicode >= 256 * 256) return 0;
-
-	
-
-// 	if (!glyphCacheInited[unicode >> 8]) {
-// 		glyphCacheInited[unicode >> 8] = true;
-// 		memset(&glyphCache[unicode & 0xff00], 0, sizeof(Glyph *) * 256);
-// 	}
-
-// 	if (glyphCache[unicode]) return glyphCache[unicode];
-
-// 	int i = fontIndex(unicode);
-// 	if (i == -1) return 0;
-
-// 	if (!fontFaces[i]) openFont(i);
-// 	if (fontFaces[i] == (FT_Face)-1) return 0;
-
-// 	FT_Face face = fontFaces[i];
-// 	FT_UInt index = FT_Get_Char_Index(face, (FT_ULong)unicode);
-// 	if (!index) return 0;
-
-// 	FT_Load_Glyph(face, index, FT_LOAD_RENDER | fontFlags[i]);
-// 	FT_Bitmap &bitmap = face->glyph->bitmap;
-
-// 	u32 x, y, w, h, nx, ny, nw, nh;
-// 	x = y = 0;
-// 	w = nw = bitmap.width;
-// 	h = nh = bitmap.rows;
-// 	Screen::instance()->rotateRect(x, y, nw, nh);
-
-// 	Glyph *glyph = (Glyph *)new u8[OFFSET(Glyph, pixmap) + nw * nh];
-// 	glyph->left = face->glyph->metrics.horiBearingX >> 6;
-// 	glyph->top = mHeight - 1 + (face->size->metrics.descender >> 6) - (face->glyph->metrics.horiBearingY >> 6);
-// 	glyph->width = face->glyph->metrics.width >> 6;
-// 	glyph->height = face->glyph->metrics.height >> 6;
-// 	glyph->pitch = nw;
-
-// 	u8 *buf = bitmap.buffer;
-// 	for (y = 0; y < h; y++, buf += bitmap.pitch) {
-// 		for (x = 0; x < w; x++) {
-// 			nx = x, ny = y;
-// 			Screen::instance()->rotatePoint(w, h, nx, ny);
-
-// 			glyph->pixmap[ny * nw + nx] =
-// 				(bitmap.pixel_mode == FT_PIXEL_MODE_MONO) ? ((buf[(x >> 3)] & (0x80 >> (x & 7))) ? 0xff : 0) : buf[x];
-// 		}
-// 	}
-
-// 	glyphCache[unicode] = glyph;
-// 	return glyph;
-// }
