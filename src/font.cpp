@@ -31,6 +31,8 @@
 #define SUBS(a, b) ((a) > (b) ? (a) - (b) : (b) - (a))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
+// #define OTB_STATUS_DEBUG
+
 static FcCharSet *unicodeMap;
 static FcFontSet *fontList;
  
@@ -62,6 +64,7 @@ Font *Font::createInstance()
 	else
 		Config::instance()->getOption("font-size", pixel_size);
 	
+#ifdef OTB_STATUS_DEBUG
 	// [DEBUG LOG START]
     FILE *fp_open = fopen("/oem/.fbterm_otb.log", "a");
     if (fp_open) {
@@ -71,6 +74,8 @@ Font *Font::createInstance()
         fprintf(fp_open, "--------------------------------\n");
         fclose(fp_open);
     }
+#endif
+
     // [DEBUG LOG END]
 
 	FcPatternAddDouble(pat, FC_PIXEL_SIZE, (double)pixel_size);
@@ -124,90 +129,132 @@ Font *Font::createInstance()
 
 Font::Font()
 {
-	mHeight = mWidth = 0;
-	mOtbEnabled = false;
-	mOriginOtbSize = mTargetSize = 0;
+    mHeight = mWidth = 0;
+    
+    // =======================================================
+    // 1. 第一步：先初始化成员并读取所有配置
+    //    必须在 openFont 之前做，否则 openFont 拿不到参数
+    // =======================================================
+    mOtbEnabled = false;
+    mOriginOtbSize = 0;
+    mTargetSize = 12; // 给个默认防崩
 
-	fontFaces = new FT_Face[fontList->nfont];
-	fontFlags = new u32[fontList->nfont];
-	memset(fontFaces, 0, sizeof(FT_Face) * fontList->nfont);
+    Config::instance()->getOption("otb-support", mOtbEnabled);
+    if (mOtbEnabled) {
+        Config::instance()->getOption("font-size", mTargetSize);
+        Config::instance()->getOption("otb-source-size", mOriginOtbSize);
+    } else {
+        Config::instance()->getOption("font-size", mTargetSize);
+        mOriginOtbSize = mTargetSize;
+    }
 
-	glyphCache = new Glyph *[256 * 256];
-	glyphCacheInited = new bool[256];
-	memset(glyphCacheInited, 0, sizeof(bool) * 256);
+    // [DEBUG LOG]
+#ifdef OTB_STATUS_DEBUG
+    FILE *fp_ctor = fopen("/oem/.fbterm_otb.log", "a");
+    if (fp_ctor) {
+        fprintf(fp_ctor, "[Font::Font] Constructor Init:\n");
+        fprintf(fp_ctor, "  -> OTB Enabled: %s\n", mOtbEnabled ? "TRUE" : "FALSE");
+        fprintf(fp_ctor, "  -> Target Size: %d\n", mTargetSize);
+        fprintf(fp_ctor, "  -> Origin OTB Size: %d\n", mOriginOtbSize);
+        fclose(fp_ctor);
+    }
+#endif
 
-	FT_Init_FreeType(&ftlib);
-	openFont(0);
+    // =======================================================
+    // 2. 第二步：初始化 FreeType 并加载字体
+    // =======================================================
+    fontFaces = new FT_Face[fontList->nfont];
+    fontFlags = new u32[fontList->nfont];
+    memset(fontFaces, 0, sizeof(FT_Face) * fontList->nfont);
 
-	FT_Face face = fontFaces[0];
-	if (face == (FT_Face)-1) return;
+    glyphCache = new Glyph *[256 * 256];
+    glyphCacheInited = new bool[256];
+    memset(glyphCacheInited, 0, sizeof(bool) * 256);
 
-	if (face->face_flags & FT_FACE_FLAG_SCALABLE) {
-		mHeight = face->size->metrics.height >> 6;
-		mWidth = face->size->metrics.max_advance >> 6;
-	} else if (face->num_fixed_sizes) {
-		double dsize;
-		FcPatternGetDouble(fontList->fonts[0], FC_PIXEL_SIZE, 0, &dsize);
+    FT_Init_FreeType(&ftlib);
+    
+    // 此时调用 openFont，它内部会使用上面读到的 mOriginOtbSize
+    openFont(0);
 
-		FT_Bitmap_Size *sizes = face->available_sizes;
-		u32 index = 0, diffmin = (u32)-1;
-		for (u32 i = 0; i < face->num_fixed_sizes; i++) {
-			u32 diff = SUBS(sizes[i].size >> 6, (u32)dsize);
-			if (diff < diffmin ) {
-				index = i;
-				diffmin = diff;
-			}
-		}
+    FT_Face face = fontFaces[0];
+    if (face == (FT_Face)-1) return;
 
-		mHeight = sizes[index].height;
-		mWidth = sizes[index].width;
-	}
+    // =======================================================
+    // 3. 第三步：计算基础格子大小 (mWidth, mHeight)
+    // =======================================================
+    
+    // --- 分支 A: OTB 开启模式 ---
+    // 如果开启了 OTB，我们不需要关心 FreeType 返回的巨大尺寸 (64px)
+    // 我们直接强制把格子设定为目标大小 (16px)
+    if (mOtbEnabled) {
+        mHeight = mTargetSize;
+        
+        // 通常终端字体宽度是高度的一半 (等宽)
+        // 如果想更精确，可以按照缩放比例去算： (FaceWidth * Target) / Origin
+        // 但简单除以 2 通常对中文显示最稳
+        mWidth = (mHeight + 1) / 2; 
+    } 
+    // --- 分支 B: 普通模式 (保留原有复杂逻辑) ---
+    else {
+        if (face->face_flags & FT_FACE_FLAG_SCALABLE) {
+            mHeight = face->size->metrics.height >> 6;
+            mWidth = face->size->metrics.max_advance >> 6;
+        } else if (face->num_fixed_sizes) {
+            double dsize;
+            FcPatternGetDouble(fontList->fonts[0], FC_PIXEL_SIZE, 0, &dsize);
 
-	if (!(face->face_flags & FT_FACE_FLAG_FIXED_WIDTH)) mWidth = MIN(mWidth, (mHeight + 1) / 2);
+            FT_Bitmap_Size *sizes = face->available_sizes;
+            u32 index = 0, diffmin = (u32)-1;
+            for (u32 i = 0; i < face->num_fixed_sizes; i++) {
+                u32 diff = SUBS(sizes[i].size >> 6, (u32)dsize);
+                if (diff < diffmin ) {
+                    index = i;
+                    diffmin = diff;
+                }
+            }
 
-	// Get OTB Option
-	
-	Config::instance()->getOption("otb-support", mOtbEnabled);
-	if(mOtbEnabled){
-		// Read origin/target size
-		Config::instance()->getOption("font-size", mTargetSize);
-		Config::instance()->getOption("otb-source-size", mOriginOtbSize);
-	}
+            mHeight = sizes[index].height;
+            mWidth = sizes[index].width;
+        }
 
-	FILE *fp_ctor = fopen("/oem/.fbterm_otb.log", "a");
-	if (fp_ctor) {
-		fprintf(fp_ctor, "[Font::Font] Constructor Init:\n");
-		fprintf(fp_ctor, "  -> OTB Enabled: %s\n", mOtbEnabled ? "TRUE" : "FALSE");
-		fprintf(fp_ctor, "  -> Target Size: %d\n", mTargetSize);
-		fprintf(fp_ctor, "  -> Origin OTB Size: %d\n", mOriginOtbSize);
-		fprintf(fp_ctor, "--------------------------------\n");
-		fclose(fp_ctor);
-	}
-	// [DEBUG LOG END]
+        // 限制宽度不超过高度的一半 (强制半角)
+        if (!(face->face_flags & FT_FACE_FLAG_FIXED_WIDTH)) {
+            mWidth = MIN(mWidth, (mHeight + 1) / 2);
+        }
+    }
 
-	// Patch end
+    // =======================================================
+    // 4. 第四步：应用用户微调配置 (font-width/height)
+    //    这部分逻辑现在会作用于已经被我们修正过的 mWidth/mHeight 上
+    // =======================================================
+    u32 width_opt = 0;
+    Config::instance()->getOption("font-width", width_opt);
 
-	u32 width = 0;
-	Config::instance()->getOption("font-width", width);
+    if (width_opt) {
+        s8 buf[64];
+        Config::instance()->getOption("font-width", buf, sizeof(buf));
 
-	if (width) {
-		s8 buf[64];
-		Config::instance()->getOption("font-width", buf, sizeof(buf));
+        if (buf[0] == '+' || buf[0] == '-') mWidth += (s32)width_opt;
+        else mWidth = width_opt;
+    }
 
-		if (buf[0] == '+' || buf[0] == '-') mWidth += (s32)width;
-		else mWidth = width;
-	}
+    u32 height_opt = 0;
+    Config::instance()->getOption("font-height", height_opt);
 
-	u32 height = 0;
-	Config::instance()->getOption("font-height", height);
+    if (height_opt) {
+        s8 buf[64];
+        Config::instance()->getOption("font-height", buf, sizeof(buf));
 
-	if (height) {
-		s8 buf[64];
-		Config::instance()->getOption("font-height", buf, sizeof(buf));
-
-		if (buf[0] == '+' || buf[0] == '-') mHeight += (s32)height;
-		else mHeight = height;
-	}
+        if (buf[0] == '+' || buf[0] == '-') mHeight += (s32)height_opt;
+        else mHeight = height_opt;
+    }
+#ifdef OTB_STATUS_DEBUG
+    // [DEBUG LOG 2] 确认最终使用的格子大小
+    if (fp_ctor = fopen("/oem/.fbterm_otb.log", "a")) {
+        fprintf(fp_ctor, "  -> Final Grid Size: W=%d, H=%d\n", mWidth, mHeight);
+        fclose(fp_ctor);
+    }
+#endif
 }
 
 Font::~Font()

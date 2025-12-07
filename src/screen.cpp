@@ -37,7 +37,7 @@
 #define redraw(args...) (FbShellManager::instance()->redraw(args))
 
 // Debug Log define
-#define GLYPH_SIZE_DEBUG
+// #define GLYPH_SIZE_DEBUG
 
 static const s8 show_cursor[] = "\e[?25h";
 static const s8 hide_cursor[] = "\e[?25l";
