@@ -104,9 +104,65 @@ Font *Font::createInstance()
 	return 0;
 }
 
+// Bilinear interpolation for scaling glyph pixmaps
+// Parameters:
+//   src: source image buffer
+//   srcW, srcH: source dimensions
+//   srcPitch: source row stride in bytes
+//   dst: destination image buffer
+//   dstW, dstH: destination dimensions
+//   dstPitch: destination row stride in bytes
+// Uses bilinear interpolation to smoothly scale grayscale bitmaps
+static void bilinearScale(const u8 *src, u32 srcW, u32 srcH, u32 srcPitch,
+                          u8 *dst, u32 dstW, u32 dstH, u32 dstPitch)
+{
+	if (srcW == 0 || srcH == 0 || dstW == 0 || dstH == 0) return;
+	
+	for (u32 dy = 0; dy < dstH; dy++) {
+		for (u32 dx = 0; dx < dstW; dx++) {
+			double sx, sy;
+			
+			if (dstW == 1) {
+				sx = (srcW - 1) / 2.0;
+			} else {
+				sx = (double)dx * (srcW - 1) / (dstW - 1);
+			}
+			
+			if (dstH == 1) {
+				sy = (srcH - 1) / 2.0;
+			} else {
+				sy = (double)dy * (srcH - 1) / (dstH - 1);
+			}
+			
+			u32 x0 = (u32)sx;
+			u32 y0 = (u32)sy;
+			u32 x1 = MIN(x0 + 1, srcW - 1);
+			u32 y1 = MIN(y0 + 1, srcH - 1);
+			
+			double xFrac = sx - x0;
+			double yFrac = sy - y0;
+			
+			u8 p00 = src[y0 * srcPitch + x0];
+			u8 p10 = src[y0 * srcPitch + x1];
+			u8 p01 = src[y1 * srcPitch + x0];
+			u8 p11 = src[y1 * srcPitch + x1];
+			
+			double val = p00 * (1 - xFrac) * (1 - yFrac) +
+			             p10 * xFrac * (1 - yFrac) +
+			             p01 * (1 - xFrac) * yFrac +
+			             p11 * xFrac * yFrac;
+			
+			dst[dy * dstPitch + dx] = (u8)(val + 0.5);
+		}
+	}
+}
+
 Font::Font()
 {
 	mHeight = mWidth = 0;
+	mSrcHeight = 0;
+	mScaleRatio = 1.0;
+	mNeedScale = false;
 
 	fontFaces = new FT_Face[fontList->nfont];
 	fontFlags = new u32[fontList->nfont];
@@ -128,19 +184,33 @@ Font::Font()
 	} else if (face->num_fixed_sizes) {
 		double dsize;
 		FcPatternGetDouble(fontList->fonts[0], FC_PIXEL_SIZE, 0, &dsize);
+		u32 targetHeight = (u32)dsize;
 
 		FT_Bitmap_Size *sizes = face->available_sizes;
-		u32 index = 0, diffmin = (u32)-1;
+		u32 index = 0;
+		u32 maxHeight = 0;
+		
+		// Select the largest available bitmap size for best scaling quality
 		for (u32 i = 0; i < face->num_fixed_sizes; i++) {
-			u32 diff = SUBS(sizes[i].size >> 6, (u32)dsize);
-			if (diff < diffmin ) {
+			if (sizes[i].height > maxHeight) {
 				index = i;
-				diffmin = diff;
+				maxHeight = sizes[i].height;
 			}
 		}
 
-		mHeight = sizes[index].height;
-		mWidth = sizes[index].width;
+		mSrcHeight = sizes[index].height;
+		u32 srcWidth = sizes[index].width;
+		
+		// Check if scaling is needed
+		if (mSrcHeight != targetHeight) {
+			mNeedScale = true;
+			mScaleRatio = (double)targetHeight / mSrcHeight;
+			mHeight = targetHeight;
+			mWidth = (u32)(srcWidth * mScaleRatio + 0.5);
+		} else {
+			mHeight = mSrcHeight;
+			mWidth = srcWidth;
+		}
 	}
 
 	if (!(face->face_flags & FT_FACE_FLAG_FIXED_WIDTH)) mWidth = MIN(mWidth, (mHeight + 1) / 2);
@@ -323,6 +393,32 @@ Font::Glyph *Font::getGlyph(u32 unicode)
 			glyph->pixmap[ny * nw + nx] =
 				(bitmap.pixel_mode == FT_PIXEL_MODE_MONO) ? ((buf[(x >> 3)] & (0x80 >> (x & 7))) ? 0xff : 0) : buf[x];
 		}
+	}
+
+	// Apply bilinear scaling if needed for bitmap fonts
+	// Only scale if primary font needs scaling and current font is also bitmap
+	if (mNeedScale && !(face->face_flags & FT_FACE_FLAG_SCALABLE)) {
+		// Calculate scaled dimensions
+		u32 scaledW = (u32)(nw * mScaleRatio + 0.5);
+		u32 scaledH = (u32)(nh * mScaleRatio + 0.5);
+		
+		// Create new scaled glyph
+		Glyph *scaledGlyph = (Glyph *)new u8[OFFSET(Glyph, pixmap) + scaledW * scaledH];
+		
+		// Scale the pixmap using bilinear interpolation
+		bilinearScale(glyph->pixmap, nw, nh, nw,
+		              scaledGlyph->pixmap, scaledW, scaledH, scaledW);
+		
+		// Adjust metrics
+		scaledGlyph->left = (s16)(glyph->left * mScaleRatio + 0.5);
+		scaledGlyph->top = (s16)(glyph->top * mScaleRatio + 0.5);
+		scaledGlyph->width = (s16)(glyph->width * mScaleRatio + 0.5);
+		scaledGlyph->height = (s16)(glyph->height * mScaleRatio + 0.5);
+		scaledGlyph->pitch = scaledW;
+		
+		// Delete original glyph and use scaled one
+		delete[] (u8 *)glyph;
+		glyph = scaledGlyph;
 	}
 
 	glyphCache[unicode] = glyph;
