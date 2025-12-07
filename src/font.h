@@ -47,6 +47,11 @@ public:
 
 private:
 	u32 mWidth, mHeight;
+	u32 mOriginOtbSize;
+	u32 mTargetSize;
+	bool mOtbEnabled;
+	float *fontScaleRatios; // 记录每个字体的缩放比例 (1.0 = 不缩放, 4.0 = 缩小4倍)
+    void openFont(u32 index);
 };
 
 #endif
