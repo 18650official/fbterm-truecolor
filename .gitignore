@@ -19,6 +19,9 @@ cmake_install.cmake
 # 编译输出目录（如果有）
 build/
 dist/
+src/.deps
+src/lib/.deps
+im/.deps
 # bin/
 # lib/
 

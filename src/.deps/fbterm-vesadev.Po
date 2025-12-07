@@ -1,3 +1,0 @@
-fbterm-vesadev.o: vesadev.cpp ../config.h
-
-../config.h:

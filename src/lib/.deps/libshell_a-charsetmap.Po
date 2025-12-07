@@ -1,5 +1,0 @@
-libshell_a-charsetmap.o: charsetmap.cpp vterm.h type.h
-
-vterm.h:
-
-type.h:
