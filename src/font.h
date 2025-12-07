@@ -47,6 +47,9 @@ public:
 
 private:
 	u32 mWidth, mHeight;
+	u32 mSrcHeight;      // Source bitmap's original height
+	double mScaleRatio;  // Scale ratio (target/source)
+	bool mNeedScale;     // Whether scaling is needed
 };
 
 #endif
