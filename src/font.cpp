@@ -62,6 +62,7 @@ Font *Font::createInstance()
     // ==================================================
     u32 pixel_size = 12; // 默认值
     Config::instance()->getOption("font-size", pixel_size);
+	pixel_size += 2; //校正程序字体映射误差
 
 #ifdef OTB_STATUS_DEBUG
     // [DEBUG LOG] 简化后的日志
@@ -142,6 +143,7 @@ Font::Font()
     // 读取用户配置的字号 (例如 16)
     // 这个 mTargetSize 将成为所有字体缩放的“标准基准”
     Config::instance()->getOption("font-size", mTargetSize);
+	mTargetSize += 2; //校正程序字体设定误差
 
     // [DEBUG LOG]
 #ifdef OTB_STATUS_DEBUG
