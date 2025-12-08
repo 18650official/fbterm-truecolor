@@ -191,7 +191,7 @@ Font::Font()
     // 无论 FreeType 加载的是 64px 的原图还是 16px 的矢量，
     // 我们最终要在屏幕上画的格子高度就是 mTargetSize (比如 16)。
     // 这样避免了加载大尺寸 OTB 时，格子被意外撑大的问题。
-    mHeight = mTargetSize;
+    mHeight = mTargetSize - 2;
     
     // 计算宽度：通常终端字体宽度是高度的一半 (Standard Half-width)
     // 这对中英文混排最稳，避免了去读取 FreeType 可能返回的奇怪宽度
