@@ -11,5 +11,17 @@ build-aux/* linguist-detectable=false
 # 3. 补充：如果有 m4 目录或 config.status 等脚本也一并排除
 m4/* linguist-detectable=false
 config.status linguist-detectable=false
-libtool linguist-detectable=false
+config.guess~ linguist-detectable=false
+depcomp linguist-detectable=false
+install-sh linguist-detectable=false
+missing linguist-detectable=false
+auto_build.sh linguist-detectable=false
+config.status linguist-detectable=false
+install-sh~ linguist-detectable=false
+config.sub~ linguist-detectable=false
+configure~ linguist-detectable=false
+compile linguist-detectable=false
+config.sub linguist-detectable=false
+config.guess linguist-detectable=false
+configure linguist-detectable=false
 
