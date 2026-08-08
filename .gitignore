@@ -31,3 +31,5 @@ im/.deps
 *.tmp
 *.swp
 
+.deps/
+*/.deps/
