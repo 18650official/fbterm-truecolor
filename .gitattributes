@@ -1,1 +1,5 @@
 *.1 linguist-documentation
+configure linguist-generated
+build-aux/* linguist-generated
+*.sh linguist-vendored
+*.m4 linguist-generated
