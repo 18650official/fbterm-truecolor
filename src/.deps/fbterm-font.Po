@@ -1,5 +1,5 @@
 fbterm-font.o: font.cpp \
- /home/miku/luckfox_build/fbterm_build/usr/include/fontconfig/fontconfig.h \
+ /home/miku/rv_build/staging/usr/include/fontconfig/fontconfig.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/sys/types.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/features.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/uClibc_config.h \
@@ -34,13 +34,13 @@ fbterm-font.o: font.cpp \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/posix2_lim.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/xopen_lim.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/stdio_lim.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/ft2build.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/config/ftheader.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/ftglyph.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/freetype.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/config/ftconfig.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/config/ftoption.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/config/ftstdlib.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/ft2build.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/config/ftheader.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/ftglyph.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/freetype.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/config/ftconfig.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/config/ftoption.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/config/ftstdlib.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/string.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/stdio.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/uClibc_stdio.h \
@@ -58,16 +58,19 @@ fbterm-font.o: font.cpp \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/bits/std_abs.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/setjmp.h \
  /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/setjmp.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/fttypes.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/ftsystem.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/ftimage.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/fterrors.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/ftmoderr.h \
- /home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/fterrdef.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/config/integer-types.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/config/public-macros.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/config/mac-support.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/fttypes.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/ftsystem.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/ftimage.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/fterrors.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/ftmoderr.h \
+ /home/miku/rv_build/staging/usr/include/freetype2/freetype/fterrdef.h \
  font.h lib/type.h lib/instance.h screen.h lib/vterm.h lib/type.h \
  fbconfig.h
 
-/home/miku/luckfox_build/fbterm_build/usr/include/fontconfig/fontconfig.h:
+/home/miku/rv_build/staging/usr/include/fontconfig/fontconfig.h:
 
 /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/sys/types.h:
 
@@ -137,19 +140,19 @@ fbterm-font.o: font.cpp \
 
 /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/stdio_lim.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/ft2build.h:
+/home/miku/rv_build/staging/usr/include/freetype2/ft2build.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/config/ftheader.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/config/ftheader.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/ftglyph.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/ftglyph.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/freetype.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/freetype.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/config/ftconfig.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/config/ftconfig.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/config/ftoption.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/config/ftoption.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/config/ftstdlib.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/config/ftstdlib.h:
 
 /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/string.h:
 
@@ -185,17 +188,23 @@ fbterm-font.o: font.cpp \
 
 /home/miku/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/arm-rockchip830-linux-uclibcgnueabihf/sysroot/usr/include/bits/setjmp.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/fttypes.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/config/integer-types.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/ftsystem.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/config/public-macros.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/ftimage.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/config/mac-support.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/fterrors.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/fttypes.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/ftmoderr.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/ftsystem.h:
 
-/home/miku/luckfox_build/fbterm_build/usr/include/freetype2/freetype/fterrdef.h:
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/ftimage.h:
+
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/fterrors.h:
+
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/ftmoderr.h:
+
+/home/miku/rv_build/staging/usr/include/freetype2/freetype/fterrdef.h:
 
 font.h:
 
