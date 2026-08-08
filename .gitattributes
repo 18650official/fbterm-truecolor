@@ -1,5 +1,15 @@
+# 1. 忽略 Man 手册（已生效）
 *.1 linguist-documentation
-configure linguist-generated
-build-aux/* linguist-generated
-*.sh linguist-vendored
-*.m4 linguist-generated
+
+# 2. 彻底将 configure 脚本和编译生成/辅助脚本排除在语言统计之外
+configure linguist-detectable=false
+*/configure linguist-detectable=false
+build-aux/* linguist-detectable=false
+*.sh linguist-detectable=false
+*.m4 linguist-detectable=false
+
+# 3. 补充：如果有 m4 目录或 config.status 等脚本也一并排除
+m4/* linguist-detectable=false
+config.status linguist-detectable=false
+libtool linguist-detectable=false
+
